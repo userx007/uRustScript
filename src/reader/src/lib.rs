@@ -38,7 +38,7 @@ impl Reader for ScriptReader {
             }
 
             let valid_line = trimmed.to_string();
-            // Split only once on '#'
+            // Split only once on '#' to remove the comment at the end of line
             let left = valid_line.split_once('#')
                                  .map(|(left, _)| left.trim()) // take the left part, trim again if needed
                                  .unwrap_or(&valid_line);

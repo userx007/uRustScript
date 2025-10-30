@@ -1,5 +1,5 @@
 use std::error::Error;
-use readers::reader_script::ScriptReader;
+use readers::ScriptReader;
 use interfaces::Reader;
 
 
