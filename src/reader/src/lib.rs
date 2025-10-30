@@ -13,7 +13,7 @@ impl ScriptReader {
 }
 
 impl Reader for ScriptReader {
-    fn read_script(&mut self, filepathname: &str, output : &mut Vec<String>) -> Result<usize, Box<dyn Error>> {
+    fn read_script(&self, filepathname: &str, output : &mut Vec<String>) -> Result<usize, Box<dyn Error>> {
         let file = File::open(filepathname)?;
         let reader = BufReader::new(file);
 

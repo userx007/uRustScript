@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-readers = { path = "../reader" }
+reader = { path = "../reader" }
+validator = { path = "../validator" }
 interfaces = { path = "../interfaces" }
