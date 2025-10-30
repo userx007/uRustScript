@@ -1,8 +1,9 @@
+use std::error::Error;
 use readers::reader_script::ScriptReader;
 use interfaces::Reader;
 
 
-fn main() {
+fn main() -> Result<(), Box<dyn Error>> {
     let mut reader = ScriptReader::new();
     let mut lines = Vec::new();
 
@@ -15,7 +16,8 @@ fn main() {
 
         }
         Err(err) => {
-            println!("Failed to read from file, error: {}", err);
+            eprintln!("Failed to read from file, error: {}", err);
         }
     }
+    Ok(())
 }

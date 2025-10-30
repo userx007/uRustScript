@@ -1,6 +1,7 @@
-use interfaces::Reader;
-use std::io::{self, BufRead, BufReader};
+use std::io::{BufRead, BufReader};
 use std::fs::File;
+use std::error::Error;
+use interfaces::Reader;
 
 
 pub struct ScriptReader;
@@ -12,7 +13,7 @@ impl ScriptReader {
 }
 
 impl Reader for ScriptReader {
-    fn read_script(&mut self, filepathname: &str, output : &mut Vec<String>) -> Result<usize, io::Error> {
+    fn read_script(&mut self, filepathname: &str, output : &mut Vec<String>) -> Result<usize, Box<dyn Error>> {
         let file = File::open(filepathname)?;
         let reader = BufReader::new(file);
 
