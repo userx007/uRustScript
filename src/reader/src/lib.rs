@@ -17,6 +17,7 @@ impl Reader for ScriptReader {
         filepathname: &str,
         output: &mut Vec<String>,
     ) -> Result<usize, Box<dyn Error>> {
+        println!("Reading script: {}", filepathname);
         let file = File::open(filepathname)?;
         let reader = BufReader::new(file);
 

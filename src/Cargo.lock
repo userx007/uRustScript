@@ -7,6 +7,7 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "interfaces",
+ "parser",
  "reader",
  "validator",
 ]
@@ -14,6 +15,13 @@ dependencies = [
 [[package]]
 name = "interfaces"
 version = "0.1.0"
+
+[[package]]
+name = "parser"
+version = "0.1.0"
+dependencies = [
+ "interfaces",
+]
 
 [[package]]
 name = "reader"

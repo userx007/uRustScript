@@ -77,6 +77,7 @@ impl ScriptValidator {
     }
 
     fn validate_line(&self, line: &str) -> bool {
+        println!("\tValidating line {}", line);
         if !self.is_load_plugin(line)
             && !self.is_const_macro(line)
             && !self.is_var_macro(line)
@@ -93,6 +94,7 @@ impl ScriptValidator {
 
 impl Validator for ScriptValidator {
     fn validate_script(&self, input: &Vec<String>) -> Result<(), Box<dyn Error>> {
+        println!("Validating script ...");
         for line in input {
             if !self.validate_line(line) {
                 return Err(Box::new(ValidateError::InvalidStatement));

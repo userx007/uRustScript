@@ -4,4 +4,5 @@ members = [
     "interfaces",
     "reader",
     "validator",
+    "parser",
 ]

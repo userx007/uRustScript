@@ -11,3 +11,7 @@ pub trait Reader {
 pub trait Validator {
     fn validate_script(&self, input: &Vec<String>) -> Result<(), Box<dyn Error>>;
 }
+
+pub trait Parser {
+    fn parse_script(&self, input: &Vec<String>) -> Result<(), Box<dyn Error>>;
+}
