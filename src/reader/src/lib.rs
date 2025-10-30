@@ -1,19 +1,22 @@
-use std::io::{BufRead, BufReader};
-use std::fs::File;
-use std::error::Error;
 use interfaces::Reader;
-
+use std::error::Error;
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 pub struct ScriptReader;
 
 impl ScriptReader {
     pub fn new() -> Self {
-        ScriptReader{}
+        ScriptReader {}
     }
 }
 
 impl Reader for ScriptReader {
-    fn read_script(&self, filepathname: &str, output : &mut Vec<String>) -> Result<usize, Box<dyn Error>> {
+    fn read_script(
+        &self,
+        filepathname: &str,
+        output: &mut Vec<String>,
+    ) -> Result<usize, Box<dyn Error>> {
         let file = File::open(filepathname)?;
         let reader = BufReader::new(file);
 
@@ -39,9 +42,10 @@ impl Reader for ScriptReader {
 
             let valid_line = trimmed.to_string();
             // Split only once on '#' to remove the comment at the end of line
-            let left = valid_line.split_once('#')
-                                 .map(|(left, _)| left.trim()) // take the left part, trim again if needed
-                                 .unwrap_or(&valid_line);
+            let left = valid_line
+                .split_once('#')
+                .map(|(left, _)| left.trim()) // take the left part, trim again if needed
+                .unwrap_or(&valid_line);
 
             output.push(left.to_string());
         }
