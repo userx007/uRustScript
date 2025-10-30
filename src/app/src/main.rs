@@ -1,19 +1,19 @@
-use std::error::Error;
-use interfaces::{Reader, Validator, Parser};
-use reader::ScriptReader;
-use validator::ScriptValidator;
+use interfaces::{Parser, Reader, Validator, Item};
 use parser::ScriptParser;
+use reader::ScriptReader;
+use std::error::Error;
+use validator::ScriptValidator;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut lines = Vec::new();
+    let mut items = Vec::<Item>::new();
 
     let reader = ScriptReader::new();
     let validator = ScriptValidator::new();
     let parser = ScriptParser::new();
 
-    reader.read_script("script.txt", &mut lines)?;
-    validator.validate_script(&lines)?;
-    parser.parse_script(&lines)?;
+    reader.read_script("script.txt", &mut items)?;
+    validator.validate_script(&mut items)?;
+    parser.parse_script(&mut items)?;
 
     Ok(())
 }

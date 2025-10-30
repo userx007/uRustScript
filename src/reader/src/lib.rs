@@ -1,4 +1,4 @@
-use interfaces::Reader;
+use interfaces::{Reader, Item, TokenType};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -15,7 +15,7 @@ impl Reader for ScriptReader {
     fn read_script(
         &self,
         filepathname: &str,
-        output: &mut Vec<String>,
+        output: &mut Vec<Item>,
     ) -> Result<usize, Box<dyn Error>> {
         println!("Reading script: {}", filepathname);
         let file = File::open(filepathname)?;
@@ -48,7 +48,10 @@ impl Reader for ScriptReader {
                 .map(|(left, _)| left.trim()) // take the left part, trim again if needed
                 .unwrap_or(&valid_line);
 
-            output.push(left.to_string());
+            output.push(Item {
+                line: left.to_string(),
+                token_type: TokenType::None,
+            });
         }
         Ok(output.len())
     }
