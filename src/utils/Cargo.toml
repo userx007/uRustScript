@@ -1,8 +1,8 @@
 [package]
-name = "validator"
+name = "utils"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 interfaces = { path = "../interfaces" }
-utils = { path = "../utils" }
+regex = "1.12.2"

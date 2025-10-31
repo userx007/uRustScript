@@ -8,4 +8,5 @@ interfaces = { path = "../interfaces" }
 reader     = { path = "../reader" }
 parser     = { path = "../parser" }
 validator  = { path = "../validator" }
+runner     = { path = "../runner" }
 

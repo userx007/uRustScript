@@ -1,8 +1,7 @@
 [package]
-name = "validator"
+name = "runner"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 interfaces = { path = "../interfaces" }
-utils = { path = "../utils" }

@@ -164,7 +164,6 @@ impl ScriptParser {
     }
 
     fn parse_item(&self, item: &mut Item) -> bool {
-        println!("\tParsing item {}", item.line);
         if !self.is_load_plugin(item)
             && !self.is_const_macro(item)
             && !self.is_var_macro(item)
