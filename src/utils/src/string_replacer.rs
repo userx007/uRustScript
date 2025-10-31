@@ -1,6 +1,6 @@
 use regex::Regex;
 use std::collections::HashMap;
-
+/*
 /// Efficient replacer that modifies &mut String only if needed
 pub struct FastReplacer<'a> {
     re: Regex,
@@ -23,23 +23,23 @@ impl<'a> FastReplacer<'a> {
         Self { re, map }
     }
 
-    /// Replace placeholders in `text` *in place*.
+    /// Replace placeholders in `line` *in place*.
     /// Returns `true` if a modification was made, `false` otherwise.
-    pub fn replace(&self, text: &mut String) -> bool {
+    pub fn replace(&self, line: &mut String) -> bool {
         // Fast path: check if regex matches anything at all
-        if !self.re.is_match(text) {
+        if !self.re.is_match(line) {
             return false; // nothing to replace
         }
 
         // Perform replacement
-        let replaced = self.re.replace_all(text, |caps: &regex::Captures| {
+        let replaced = self.re.replace_all(line, |caps: &regex::Captures| {
             let key = &caps[1];
             self.map.get(key).map(|v| v.as_str()).unwrap_or("")
         });
 
         // Only assign if changed
         if let std::borrow::Cow::Owned(new_str) = replaced {
-            *text = new_str;
+            *line = new_str;
             true
         } else {
             false
@@ -47,7 +47,7 @@ impl<'a> FastReplacer<'a> {
     }
 }
 
-/*
+
 fn main() {
     let mut map = HashMap::new();
     map.insert("XXX".to_string(), "ValueXXX".to_string());
@@ -71,3 +71,42 @@ fn main() {
     }
 }
 */
+
+
+pub fn replace_macros(line: &mut String, map: &HashMap<String, String>) -> bool {
+    if !line.contains('$') || map.is_empty() {
+        return false;
+    }
+
+    // Sort keys by length descending (longest first)
+    let mut keys: Vec<&String> = map.keys().collect();
+    keys.sort_by(|a, b| b.len().cmp(&a.len()));
+
+    // Join keys into a regex alternation: (XXXX|XXX|...)
+    let pattern = keys
+        .iter()
+        .map(|k| regex::escape(k))
+        .collect::<Vec<_>>()
+        .join("|");
+
+    let re = Regex::new(&format!(r"\$({})", pattern)).unwrap();
+
+    // Fast path: check if anything matches
+    if !re.is_match(line) {
+        return false;
+    }
+
+    // Replace matches using map
+    let replaced = re.replace_all(line, |caps: &regex::Captures| {
+        let key = &caps[1];
+        map.get(key).map(|v| v.as_str()).unwrap_or("")
+    });
+
+    // Only assign back if the line actually changed
+    if let std::borrow::Cow::Owned(new_text) = replaced {
+        *line = new_text;
+        true
+    } else {
+        false
+    }
+}

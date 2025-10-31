@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "interfaces",
  "regex",
+ "utils",
 ]
 
 [[package]]
@@ -96,5 +97,4 @@ name = "validator"
 version = "0.1.0"
 dependencies = [
  "interfaces",
- "utils",
 ]

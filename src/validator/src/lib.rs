@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType, Validator};
-use utils::string_replacer::FastReplacer;
+
 
 #[derive(Debug)]
 enum ValidateError {

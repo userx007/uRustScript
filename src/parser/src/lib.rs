@@ -4,6 +4,7 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, Parser, TokenType};
+use utils::string_replacer;
 
 const RE_LOAD_PLUGIN: &'static str =
     r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
@@ -185,52 +186,13 @@ impl ScriptParser {
         item.line = String::new();
         true
     }
-
-    fn replace_macros(&self, line: &mut String) -> bool {
-        if !line.contains('$') || self.macros.is_empty() {
-            return false;
-        }
-
-        // Sort keys by length descending (to prefer longest match)
-        let mut keys: Vec<&String> = self.macros.keys().collect();
-        keys.sort_by(|a, b| b.len().cmp(&a.len()));
-
-        // Join into regex alternation: (XXXX|XXX|...)
-        let pattern = keys
-            .iter()
-            .map(|k| regex::escape(k))
-            .collect::<Vec<_>>()
-            .join("|");
-
-        let re = Regex::new(&format!(r"\$({})", pattern)).unwrap();
-
-        // Fast path: nothing to replace
-        if !re.is_match(line) {
-            return false;
-        }
-
-        // Perform replacements
-        let replaced = re.replace_all(line, |caps: &regex::Captures| {
-            let key = &caps[1];
-            self.macros.get(key).map(|v| v.as_str()).unwrap_or("")
-        });
-
-        // Update only if changed
-        if let std::borrow::Cow::Owned(new_text) = replaced {
-            *line = new_text;
-            true
-        } else {
-            false
-        }
-    }
-
 }
 
 impl Parser for ScriptParser {
     fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Parsing script ...");
         for item in items {
-            self.replace_macros(&mut item.line);
+            string_replacer::replace_macros(&mut item.line, &self.macros);
             if !self.parse_item(item) {
                 return Err(Box::new(ParseError::InvalidStatement));
             }
