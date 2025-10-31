@@ -1,4 +1,4 @@
-use interfaces::{Parser, Reader, Validator, Item};
+use interfaces::{Item, Parser, Reader, Validator};
 use parser::ScriptParser;
 use reader::ScriptReader;
 use std::error::Error;

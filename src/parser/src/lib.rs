@@ -1,4 +1,4 @@
-use interfaces::{Parser, Item, TokenType};
+use interfaces::{Item, Parser, TokenType};
 use std::error::Error;
 use std::fmt;
 
@@ -52,19 +52,36 @@ impl ScriptParser {
         println!("\tValidating item {:?}", item);
 
         match item.token_type {
-            TokenType::LoadPlugin {name: _} => {
+            TokenType::LoadPlugin {
+                name: _,
+                rule: _,
+                vers: _,
+            } => {
                 return self.parse_load_plugin(item);
             }
             TokenType::ConstantMacro { name: _, value: _ } => {
                 return self.parse_constant_macro(item);
             }
-            TokenType::VariableMacro  { plugin: _, command: _, args: _, name: _, value: _ } => {
+            TokenType::VariableMacro {
+                plugin: _,
+                command: _,
+                args: _,
+                name: _,
+                value: _,
+            } => {
                 return self.parse_variable_macro(item);
             }
-            TokenType::Command { plugin: _, command: _, args: _ } => {
+            TokenType::Command {
+                plugin: _,
+                command: _,
+                args: _,
+            } => {
                 return self.parse_command(item);
             }
-            TokenType::IfGoTo { condition: _, label: _ } => {
+            TokenType::IfGoTo {
+                condition: _,
+                label: _,
+            } => {
                 return self.parse_if_goto(item);
             }
             TokenType::Label { label: _ } => {

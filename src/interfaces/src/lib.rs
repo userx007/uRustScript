@@ -12,6 +12,8 @@ pub enum TokenType {
     None,
     LoadPlugin {
         name: String,
+        rule: String,
+        vers: String,
     },
     ConstantMacro {
         name: String,

@@ -1,4 +1,4 @@
-use interfaces::{Reader, Item, TokenType};
+use interfaces::{Item, Reader, TokenType};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};

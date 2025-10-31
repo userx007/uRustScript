@@ -1,22 +1,14 @@
-use interfaces::{Validator, Item, TokenType};
+use interfaces::{Item, TokenType, Validator};
 use regex::Regex;
 use std::error::Error;
 use std::fmt;
 
-const RE_LOAD_PLUGIN: &'static str =
-    r#"(^LOAD_PLUGIN\s+[A-Za-z_]+(_[A-Za-z_]+)?(\s+(<=|<|>=|>|==)\s+v\d+\.\d+\.\d+\.\d+)?$)"#;
-
-const RE_CONST_MACRO: &'static str = r#"(^[A-Za-z_][A-Za-z0-9_]*\s*:=\s*\S.*$)"#;
-
-const RE_VAR_MACRO: &'static str =
-    r#"(^[A-Za-z_][A-Za-z0-9_]*\s*\?=\s*[A-Z]+[A-Z0-9_]*[A-Z]+\.[A-Z]+[A-Z0-9_]*[A-Z]+.*$)"#;
-
-const RE_COMMAND: &'static str = r#"(^[A-Z]+[A-Z0-9_]*[A-Z]+\.[A-Z]+[A-Z0-9_]*[A-Z]+\s*.*$)"#;
-
-const RE_IF_GOTO_OR_GOTO: &'static str =
-    r#"(^(?:IF\s+\S(?:.*\S)?\s+)?GOTO\s+[A-Za-z_][A-Za-z0-9_]*$)"#;
-
-const RE_LABEL: &'static str = r#"(LABEL\s+[A-Za-z_][A-Za-z0-9_]*$)"#;
+const RE_LOAD_PLUGIN:     &'static str = r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
+const RE_CONST_MACRO:     &'static str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*:=\s*(.+)$"#;
+const RE_VAR_MACRO:       &'static str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*\?=\s*([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
+const RE_COMMAND:         &'static str = r#"^([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
+const RE_IF_GOTO_OR_GOTO: &'static str = r#"^(?:IF\s+(.*?)\s+)?GOTO\s+([A-Za-z0-9_]*)\s*$"#;
+const RE_LABEL:           &'static str = r#"^(LABEL\s+[A-Za-z0-9_]*$)"#;
 
 #[derive(Debug)]
 enum ValidateError {
@@ -42,8 +34,21 @@ impl ScriptValidator {
 
     fn is_load_plugin(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_LOAD_PLUGIN).unwrap();
-        if re.is_match(&item.line) {
-            item.token_type = TokenType::LoadPlugin { name: "".into() };
+        if let Some(caps) = re.captures(&item.line) {
+            let name = caps
+                .get(1)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let rule = caps
+                .get(2)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let vers = caps
+                .get(3)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+
+            item.token_type = TokenType::LoadPlugin { name, rule, vers };
             return true;
         }
         false
@@ -51,11 +56,17 @@ impl ScriptValidator {
 
     fn is_const_macro(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_CONST_MACRO).unwrap();
-        if re.is_match(&item.line) {
-            item.token_type = TokenType::ConstantMacro {
-                name: "".into(),
-                value: "".into(),
-            };
+        if let Some(caps) = re.captures(&item.line) {
+            let name = caps
+                .get(1)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let value = caps
+                .get(2)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+
+            item.token_type = TokenType::ConstantMacro { name, value };
             return true;
         }
         false
@@ -63,13 +74,31 @@ impl ScriptValidator {
 
     fn is_var_macro(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_VAR_MACRO).unwrap();
-        if re.is_match(&item.line) {
+        if let Some(caps) = re.captures(&item.line) {
+            let name = caps
+                .get(1)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let plugin = caps
+                .get(2)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let command = caps
+                .get(3)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let args = caps
+                .get(4)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let value = "".into();
+
             item.token_type = TokenType::VariableMacro {
-                plugin: "".into(),
-                command: "".into(),
-                args: "".into(),
-                name: "".into(),
-                value: "".into(),
+                plugin,
+                command,
+                args,
+                name,
+                value,
             };
             return true;
         }
@@ -78,11 +107,24 @@ impl ScriptValidator {
 
     fn is_command(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_COMMAND).unwrap();
-        if re.is_match(&item.line) {
+        if let Some(caps) = re.captures(&item.line) {
+            let plugin = caps
+                .get(1)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let command = caps
+                .get(2)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let args = caps
+                .get(3)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+
             item.token_type = TokenType::Command {
-                plugin: "".into(),
-                command: "".into(),
-                args: "".into(),
+                plugin,
+                command,
+                args,
             };
             return true;
         }
@@ -91,11 +133,16 @@ impl ScriptValidator {
 
     fn is_if_cond_goto(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_IF_GOTO_OR_GOTO).unwrap();
-        if re.is_match(&item.line) {
-            item.token_type = TokenType::IfGoTo {
-                condition: "".into(),
-                label: "".into(),
-            };
+        if let Some(caps) = re.captures(&item.line) {
+            let condition = caps
+                .get(1)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            let label = caps
+                .get(2)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            item.token_type = TokenType::IfGoTo { condition, label };
             return true;
         }
         false
@@ -103,8 +150,12 @@ impl ScriptValidator {
 
     fn is_label(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_LABEL).unwrap();
-        if re.is_match(&item.line) {
-            item.token_type = TokenType::Label { label: "".into() };
+        if let Some(caps) = re.captures(&item.line) {
+            let label = caps
+                .get(1)
+                .map(|m| m.as_str().to_string())
+                .unwrap_or_default();
+            item.token_type = TokenType::Label { label };
             return true;
         }
         false
