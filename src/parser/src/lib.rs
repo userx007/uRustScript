@@ -1,29 +1,31 @@
-use interfaces::{Item, TokenType, Parser};
+use interfaces::{Item, Parser, TokenType};
 use regex::Regex;
 use std::error::Error;
 use std::fmt;
 
-const RE_LOAD_PLUGIN:     &'static str = r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
-const RE_CONST_MACRO:     &'static str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*:=\s*(.+)$"#;
-const RE_VAR_MACRO:       &'static str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*\?=\s*([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
-const RE_COMMAND:         &'static str = r#"^([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
+const RE_LOAD_PLUGIN: &'static str =
+    r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
+const RE_CONST_MACRO: &'static str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*:=\s*(.+)$"#;
+const RE_VAR_MACRO: &'static str =
+    r#"^([A-Za-z_][A-Za-z0-9_]*)\s*\?=\s*([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
+const RE_COMMAND: &'static str = r#"^([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
 const RE_IF_GOTO_OR_GOTO: &'static str = r#"^(?:IF\s+(.*?)\s+)?GOTO\s+([A-Za-z0-9_]*)\s*$"#;
-const RE_LABEL:           &'static str = r#"^(LABEL\s+[A-Za-z0-9_]*$)"#;
+const RE_LABEL: &'static str = r#"^(LABEL\s+[A-Za-z0-9_]*$)"#;
 
 #[derive(Debug)]
-enum ParserError {
+enum ParseError {
     InvalidStatement,
 }
 
-impl fmt::Display for ParserError {
+impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ParserError::InvalidStatement => write!(f, "Invalid item in script"),
+            ParseError::InvalidStatement => write!(f, "Invalid item in script"),
         }
     }
 }
 
-impl Error for ParserError {}
+impl Error for ParseError {}
 
 pub struct ScriptParser;
 
@@ -173,16 +175,18 @@ impl ScriptParser {
             println!("Invalid item [{:?}]", item);
             return false;
         }
+        // free the memory used by line
+        item.line = String::new();
         true
     }
 }
 
 impl Parser for ScriptParser {
-    fn parse_script(&self, inout: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
+    fn parse_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Parsing script ...");
-        for item in inout {
+        for item in items {
             if !self.parse_item(item) {
-                return Err(Box::new(ParserError::InvalidStatement));
+                return Err(Box::new(ParseError::InvalidStatement));
             }
         }
         Ok(())
