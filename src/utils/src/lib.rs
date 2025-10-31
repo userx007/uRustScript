@@ -1,1 +1,1 @@
-pub mod replacer;
+pub mod string_replacer;

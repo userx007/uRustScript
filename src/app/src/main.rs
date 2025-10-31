@@ -10,7 +10,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut items = Vec::<Item>::new();
 
     let reader = ScriptReader::new();
-    let parser = ScriptParser::new();
+    let mut parser = ScriptParser::new();
     let validator = ScriptValidator::new();
     let runner = ScriptRunner::new();
 

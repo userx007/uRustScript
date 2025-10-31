@@ -1,7 +1,9 @@
-use interfaces::{Item, Parser, TokenType};
+use std::collections::HashMap;
 use regex::Regex;
 use std::error::Error;
 use std::fmt;
+
+use interfaces::{Item, Parser, TokenType};
 
 const RE_LOAD_PLUGIN: &'static str =
     r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
@@ -27,11 +29,15 @@ impl fmt::Display for ParseError {
 
 impl Error for ParseError {}
 
-pub struct ScriptParser;
+pub struct ScriptParser {
+    macros: HashMap<String, String>,
+}
 
 impl ScriptParser {
     pub fn new() -> Self {
-        ScriptParser {}
+        ScriptParser {
+            macros: HashMap::new(),
+        }
     }
 
     fn is_load_plugin(&self, item: &mut Item) -> bool {
@@ -56,7 +62,7 @@ impl ScriptParser {
         false
     }
 
-    fn is_const_macro(&self, item: &mut Item) -> bool {
+    fn is_const_macro(&mut self, item: &mut Item) -> bool {
         let re = Regex::new(RE_CONST_MACRO).unwrap();
         if let Some(caps) = re.captures(&item.line) {
             let name = caps
@@ -68,6 +74,7 @@ impl ScriptParser {
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
 
+            self.macros.insert(name.clone(), value.clone());
             item.token_type = TokenType::ConstantMacro { name, value };
             return true;
         }
@@ -163,7 +170,7 @@ impl ScriptParser {
         false
     }
 
-    fn parse_item(&self, item: &mut Item) -> bool {
+    fn parse_item(&mut self, item: &mut Item) -> bool {
         if !self.is_load_plugin(item)
             && !self.is_const_macro(item)
             && !self.is_var_macro(item)
@@ -174,16 +181,56 @@ impl ScriptParser {
             println!("Invalid item [{:?}]", item);
             return false;
         }
-        // free the memory used by line
+        // destroy the line and free the memory
         item.line = String::new();
         true
     }
+
+    fn replace_macros(&self, line: &mut String) -> bool {
+        if !line.contains('$') || self.macros.is_empty() {
+            return false;
+        }
+
+        // Sort keys by length descending (to prefer longest match)
+        let mut keys: Vec<&String> = self.macros.keys().collect();
+        keys.sort_by(|a, b| b.len().cmp(&a.len()));
+
+        // Join into regex alternation: (XXXX|XXX|...)
+        let pattern = keys
+            .iter()
+            .map(|k| regex::escape(k))
+            .collect::<Vec<_>>()
+            .join("|");
+
+        let re = Regex::new(&format!(r"\$({})", pattern)).unwrap();
+
+        // Fast path: nothing to replace
+        if !re.is_match(line) {
+            return false;
+        }
+
+        // Perform replacements
+        let replaced = re.replace_all(line, |caps: &regex::Captures| {
+            let key = &caps[1];
+            self.macros.get(key).map(|v| v.as_str()).unwrap_or("")
+        });
+
+        // Update only if changed
+        if let std::borrow::Cow::Owned(new_text) = replaced {
+            *line = new_text;
+            true
+        } else {
+            false
+        }
+    }
+
 }
 
 impl Parser for ScriptParser {
-    fn parse_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
+    fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Parsing script ...");
         for item in items {
+            self.replace_macros(&mut item.line);
             if !self.parse_item(item) {
                 return Err(Box::new(ParseError::InvalidStatement));
             }

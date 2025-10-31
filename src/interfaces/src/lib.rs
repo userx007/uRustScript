@@ -49,7 +49,7 @@ pub trait Reader {
 }
 
 pub trait Parser {
-    fn parse_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
+    fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
 }
 
 pub trait Validator {

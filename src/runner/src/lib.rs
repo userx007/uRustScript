@@ -28,6 +28,10 @@ impl ScriptRunner {
 impl Runner for ScriptRunner {
     fn run_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Running script ...");
+
+        for item in items {
+            println!("{:?}", item);
+        }
         Ok(())
     }
 }
