@@ -48,10 +48,6 @@ pub trait Reader {
     ) -> Result<usize, Box<dyn Error>>;
 }
 
-pub trait Validator {
-    fn validate_script(&self, inout: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
-}
-
 pub trait Parser {
     fn parse_script(&self, inout: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
 }

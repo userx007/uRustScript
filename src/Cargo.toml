@@ -3,6 +3,5 @@ members = [
     "app",
     "interfaces",
     "reader",
-    "validator",
     "parser",
 ]
