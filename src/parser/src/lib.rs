@@ -152,6 +152,7 @@ impl ScriptParser {
                 .get(2)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
+
             item.token_type = TokenType::IfGoTo { condition, label };
             return true;
         }
@@ -165,6 +166,7 @@ impl ScriptParser {
                 .get(1)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
+
             item.token_type = TokenType::Label { label };
             return true;
         }
