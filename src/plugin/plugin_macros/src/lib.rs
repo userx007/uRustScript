@@ -2,35 +2,34 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, ItemImpl};
 
+/// Automatically registers all impl functions as commands
 #[proc_macro_attribute]
-pub fn register_commands(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn plugin_commands(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemImpl);
-    let self_ty = &input.self_ty;
+    let mut commands = Vec::new();
 
-    // Collect all methods starting with "cmd_"
-    let mut cmds = vec![];
     for item in &input.items {
         if let syn::ImplItem::Fn(meth) = item {
-            let name = meth.sig.ident.to_string();
-            if name.starts_with("cmd_") {
-                let cmd_name = name.trim_start_matches("cmd_").to_uppercase();
-                let ident = &meth.sig.ident;
-                cmds.push(quote! {
-                    self.commands.register(#cmd_name, #self_ty::#ident);
-                });
-            }
+            let name = &meth.sig.ident;
+            commands.push(quote! {
+                self.commands.insert(
+                    stringify!(#name).to_string(),
+                    Box::new(|s: &mut _ , args: &str| s.#name(args))
+                );
+            });
         }
     }
 
-    let expanded = quote! {
-        #input
+    let original = quote! { #input };
+    let gen = quote! {
+        #original
 
-        impl #self_ty {
+        impl UtilsPlugin {
             pub fn register_commands(&mut self) {
-                #(#cmds)*
+                #(#commands)*
             }
         }
     };
 
-    TokenStream::from(expanded)
+    gen.into()
 }

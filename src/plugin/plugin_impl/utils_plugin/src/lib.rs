@@ -1,88 +1,118 @@
-use plugin_interface::*;
-use std::ffi::CString;
-use std::ffi::c_char;
+use plugin_api::*;
+use plugin_macros::plugin_commands;
+use std::collections::HashMap;
 
-struct UtilsPlugin {
+pub struct UtilsPlugin {
     initialized: bool,
     enabled: bool,
-    data: String,
+    result: String,
+    commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
 }
 
 impl UtilsPlugin {
-    extern "C" fn is_initialized(ptr: *const std::ffi::c_void) -> bool {
-        unsafe { (*(ptr as *const Self)).initialized }
-    }
-
-    extern "C" fn is_enabled(ptr: *const std::ffi::c_void) -> bool {
-        unsafe { (*(ptr as *const Self)).enabled }
-    }
-
-    extern "C" fn set_params(_ptr: *mut std::ffi::c_void, _params: *const std::ffi::c_void) -> bool {
-        true
-    }
-
-    extern "C" fn get_data(ptr: *const std::ffi::c_void) -> *const std::os::raw::c_char {
-        let plugin = unsafe { &*(ptr as *const Self) };
-        CString::new(plugin.data.clone()).unwrap().into_raw()
-    }
-
-    extern "C" fn reset_data(ptr: *mut std::ffi::c_void) {
-        unsafe { (*(ptr as *mut Self)).data.clear(); }
-    }
-
-    extern "C" fn do_init(ptr: *mut std::ffi::c_void, _user: *mut std::ffi::c_void) -> bool {
-        unsafe { (*(ptr as *mut Self)).initialized = true; }
-        true
-    }
-
-    extern "C" fn do_enable(ptr: *mut std::ffi::c_void) {
-        unsafe { (*(ptr as *mut Self)).enabled = true; }
-    }
-
-    extern "C" fn do_dispatch(ptr: *mut std::ffi::c_void, cmd: *const c_char, params: *const c_char) -> bool {
-        let cmd = unsafe { std::ffi::CStr::from_ptr(cmd) }.to_string_lossy();
-        let params = unsafe { std::ffi::CStr::from_ptr(params) }.to_string_lossy();
-        let plugin = unsafe { &mut *(ptr as *mut Self) };
-        plugin.data = format!("Executed {cmd}({params})");
-        true
-    }
-
-    extern "C" fn do_cleanup(ptr: *mut std::ffi::c_void) {
-        unsafe { (*(ptr as *mut Self)).initialized = false; }
+    pub fn new() -> Self {
+        let mut plugin = Self {
+            initialized: false,
+            enabled: false,
+            result: String::new(),
+            commands: HashMap::new(),
+        };
+        plugin.register_commands(); // procedural macro registers all commands
+        plugin
     }
 }
 
-static VTABLE: PluginVTable = PluginVTable {
-    is_initialized: UtilsPlugin::is_initialized,
-    is_enabled: UtilsPlugin::is_enabled,
-    set_params: UtilsPlugin::set_params,
-    get_data: UtilsPlugin::get_data,
-    reset_data: UtilsPlugin::reset_data,
-    do_init: UtilsPlugin::do_init,
-    do_enable: UtilsPlugin::do_enable,
-    do_dispatch: UtilsPlugin::do_dispatch,
-    do_cleanup: UtilsPlugin::do_cleanup,
-};
+#[plugin_commands]
+impl UtilsPlugin {
+    fn ECHO(&mut self, args: &str) -> bool {
+        self.result = args.to_string();
+        true
+    }
+
+    fn RESET(&mut self, _args: &str) -> bool {
+        self.result.clear();
+        true
+    }
+
+    fn PRINT(&mut self, args: &str) -> bool {
+        println!("Plugin PRINT: {}", args);
+        true
+    }
+
+    // Add any additional commands here
+}
+
+impl PluginInterface for UtilsPlugin {
+    fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+
+    fn set_params(&mut self, _params: &ParamsSet) -> bool {
+        self.initialized = true;
+        true
+    }
+
+    fn get_params(&self, _params: &mut ParamsGet) {}
+
+    fn reset_data(&mut self) {
+        self.result.clear()
+    }
+
+    fn get_data(&self) -> &str {
+        &self.result
+    }
+
+    fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
+        // Temporary removal to avoid mutable/immutable borrow conflict
+        if let Some(f) = self.commands.remove(cmd) {
+            let result = f(self, args);
+            self.commands.insert(cmd.to_string(), f); // put closure back
+            result
+        } else {
+            false
+        }
+    }
+}
 
 #[no_mangle]
-pub extern "C" fn create_plugin() -> Plugin {
-    let boxed = Box::new(UtilsPlugin {
-        initialized: false,
-        enabled: false,
-        data: String::new(),
-    });
-    Plugin {
-        instance: Box::into_raw(boxed) as *mut _,
-        vtable: &VTABLE,
-    }
+pub extern "C" fn plugin_create() -> *mut dyn PluginInterface {
+    let plugin = Box::new(UtilsPlugin::new());
+    Box::into_raw(plugin)
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_plugin(p: *mut Plugin) {
-    if p.is_null() {
-        return;
-    }
-    unsafe {
-        drop(Box::from_raw((*p).instance as *mut UtilsPlugin));
+pub extern "C" fn plugin_destroy(plugin: *mut dyn PluginInterface) {
+    if !plugin.is_null() {
+        unsafe { Box::from_raw(plugin); }
     }
 }
+
+
+/*
+
+use libloading::{Library, Symbol};
+use plugin_api::PluginInterface;
+
+unsafe {
+    let lib = Library::new("utils_plugin.so").unwrap();
+
+    let plugin_create: Symbol<unsafe extern "C" fn() -> *mut dyn PluginInterface> =
+        lib.get(b"plugin_create").unwrap();
+    let plugin_destroy: Symbol<unsafe extern "C" fn(*mut dyn PluginInterface)> =
+        lib.get(b"plugin_destroy").unwrap();
+
+    let plugin_ptr = plugin_create();
+    let plugin = &mut *plugin_ptr;
+
+    plugin.do_dispatch("ECHO", "Hello from dynamic load");
+    println!("Result: {}", plugin.get_data());
+
+    plugin_destroy(plugin_ptr);
+}
+
+
+*/

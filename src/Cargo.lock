@@ -43,13 +43,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "math_plugin"
-version = "0.1.0"
-dependencies = [
- "plugin_interface",
-]
-
-[[package]]
 name = "memchr"
 version = "2.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -65,7 +58,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "plugin_interface"
+name = "plugin_api"
 version = "0.1.0"
 dependencies = [
  "interfaces",
@@ -76,7 +69,7 @@ name = "plugin_loader"
 version = "0.1.0"
 dependencies = [
  "libloading",
- "plugin_interface",
+ "plugin_api",
 ]
 
 [[package]]
@@ -178,7 +171,8 @@ dependencies = [
 name = "utils_plugin"
 version = "0.1.0"
 dependencies = [
- "plugin_interface",
+ "plugin_api",
+ "plugin_macros",
 ]
 
 [[package]]
