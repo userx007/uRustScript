@@ -1,35 +1,49 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemImpl};
+use syn::{parse_macro_input, ItemImpl, ImplItem};
 
-/// Automatically registers all impl functions as commands
 #[proc_macro_attribute]
 pub fn plugin_commands(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemImpl);
-    let mut commands = Vec::new();
+    let struct_name = &input.self_ty;
 
-    for item in &input.items {
-        if let syn::ImplItem::Fn(meth) = item {
-            let name = &meth.sig.ident;
-            commands.push(quote! {
+    let mut method_names = Vec::new();
+    let mut command_inserts = Vec::new();
+
+    for impl_item in &input.items {
+        if let ImplItem::Fn(meth) = impl_item {
+            let name_ident = &meth.sig.ident;
+            let name_str = name_ident.to_string();
+
+            // HashMap insertion
+            command_inserts.push(quote! {
                 self.commands.insert(
-                    stringify!(#name).to_string(),
-                    Box::new(|s: &mut _ , args: &str| s.#name(args))
+                    #name_str.to_string(),
+                    Box::new(|s: &mut _, args: &str| s.#name_ident(args))
                 );
             });
+
+            // method names for command_names()
+            method_names.push(quote! { #name_str });
         }
     }
 
-    let original = quote! { #input };
-    let gen = quote! {
-        #original
+    let gen_command_names = quote! {
+        impl #struct_name {
+            pub fn command_names() -> Vec<&'static str> {
+                vec![#(#method_names),*]
+            }
 
-        impl UtilsPlugin {
             pub fn register_commands(&mut self) {
-                #(#commands)*
+                #(#command_inserts)*
             }
         }
     };
 
-    gen.into()
+    let expanded = quote! {
+        #input
+        #gen_command_names
+    };
+
+    TokenStream::from(expanded)
 }
