@@ -1,4 +1,4 @@
-use plugin_api::*;
+use plugin_interface::*;
 use std::ffi::CString;
 use std::ffi::c_char;
 

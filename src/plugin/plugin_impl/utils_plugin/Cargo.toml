@@ -7,4 +7,4 @@ edition = "2021"
 crate-type = ["cdylib"]    # ensures we get .so / .dll / .dylib
 
 [dependencies]
-plugin_api = { path = "../../plugin_api" }
+plugin_interface = { path = "../../plugin_interface" }

@@ -46,7 +46,7 @@ dependencies = [
 name = "math_plugin"
 version = "0.1.0"
 dependencies = [
- "plugin_api",
+ "plugin_interface",
 ]
 
 [[package]]
@@ -65,7 +65,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "plugin_api"
+name = "plugin_interface"
 version = "0.1.0"
 dependencies = [
  "interfaces",
@@ -76,7 +76,7 @@ name = "plugin_loader"
 version = "0.1.0"
 dependencies = [
  "libloading",
- "plugin_api",
+ "plugin_interface",
 ]
 
 [[package]]
@@ -178,7 +178,7 @@ dependencies = [
 name = "utils_plugin"
 version = "0.1.0"
 dependencies = [
- "plugin_api",
+ "plugin_interface",
 ]
 
 [[package]]

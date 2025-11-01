@@ -1,4 +1,4 @@
-use plugin_api::*;
+use plugin_interface::*;
 use libloading::{Library, Symbol};
 use std::collections::HashSet;
 use std::path::PathBuf;
