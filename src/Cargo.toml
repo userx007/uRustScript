@@ -9,6 +9,7 @@ members = [
     "utils",
     "plugin_api",
     "plugin_loader",
+    "plugin_macros",
     "plugins/utils_plugin",
     "plugins/math_plugin",
 ]
