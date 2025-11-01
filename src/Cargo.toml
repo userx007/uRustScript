@@ -7,4 +7,8 @@ members = [
     "validator",
     "runner",
     "utils",
+    "plugin_api",
+    "plugin_loader",
+    "plugins/utils_plugin",
+    "plugins/math_plugin",
 ]

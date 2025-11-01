@@ -1,0 +1,10 @@
+[package]
+name = "math_plugin"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]    # ensures we get .so / .dll / .dylib
+
+[dependencies]
+plugin_api = { path = "../../plugin_api" }
