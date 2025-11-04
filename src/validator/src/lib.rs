@@ -7,13 +7,15 @@ use interfaces::{Item, TokenType, Validator};
 
 #[derive(Debug)]
 enum ValidateError {
-    LoadedPlugins,
+    PluginNotLoaded,
+    PluginLoadingFailed,
 }
 
 impl fmt::Display for ValidateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidateError::LoadedPlugins => write!(f, "Needed plugins not loaded"),
+            ValidateError::PluginNotLoaded => write!(f, "Needed plugins not loaded"),
+            ValidateError::PluginLoadingFailed => write!(f, "Failed to load plugin"),
         }
     }
 }
@@ -27,44 +29,54 @@ impl ScriptValidator {
         ScriptValidator {}
     }
 
-    fn validate_plugins_availability(&self, items: &mut Vec<Item>) -> bool {
-        let mut loaded = HashSet::new();
-        let mut used   = HashSet::new();
+    fn validate_plugins_availability(&self, items: &mut Vec<Item>, plugins :&mut HashSet<String>) -> bool {
+        let mut used: HashSet<String> = HashSet::new();
 
         for item in items {
             match &item.token_type {
                 TokenType::LoadPlugin{ plugin, .. } => {
-                    loaded.insert(plugin);
+                    plugins.insert(plugin.to_string());
                 }
                 TokenType::VariableMacro{ plugin, .. } => {
-                    used.insert(plugin);
+                    used.insert(plugin.to_string());
                 }
                 TokenType::Command{ plugin, .. } => {
-                    used.insert(plugin);
+                    used.insert(plugin.to_string());
                 }
                 _ => {}
             }
         }
 
-        println!("Loaded: {:?}", loaded);
+        println!("Loaded: {:?}", plugins);
         println!("Used  : {:?}", used);
 
-        if loaded != used {
-            let missing: HashSet<_> = used.difference(&loaded).cloned().collect();
+        if *plugins != used {
+            let missing: HashSet<_> = used.difference(&plugins).cloned().collect();
             println!("Missing  : {:?}", missing);
             return false;
         }
         true
     }
 
-//    fn load_plugins(&self, )
+    fn load_plugins(&self, plugins: &HashSet<String>) -> bool {
+        for plugin in plugins {
+            println!("Loaded {}", plugin);
+        }
+        true
+    }
 }
 
 impl Validator for ScriptValidator {
     fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
+        let mut loaded = HashSet::<String>::new();
+
         println!("Validating script ...");
-        if false == self.validate_plugins_availability(items) {
-            return Err(Box::new(ValidateError::LoadedPlugins));
+        if false == self.validate_plugins_availability(items, &mut loaded) {
+            return Err(Box::new(ValidateError::PluginNotLoaded));
+        }
+
+        if false == self.load_plugins(&loaded){
+            return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
         Ok(())
     }
