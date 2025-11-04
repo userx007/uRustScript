@@ -11,19 +11,19 @@ pub enum TokenType {
     #[default]
     None,
     LoadPlugin {
-        name: String,
+        plugin: String,
         rule: String,
         vers: String,
     },
     ConstantMacro {
-        name: String,
+        cmacro: String,
         value: String,
     },
     VariableMacro {
         plugin: String,
         command: String,
         args: String,
-        name: String,
+        vmacro: String,
         value: String,
     },
     Command {

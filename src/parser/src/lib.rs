@@ -44,7 +44,7 @@ impl ScriptParser {
     fn is_load_plugin(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_LOAD_PLUGIN).unwrap();
         if let Some(caps) = re.captures(&item.line) {
-            let name = caps
+            let plugin = caps
                 .get(1)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
@@ -57,7 +57,7 @@ impl ScriptParser {
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
 
-            item.token_type = TokenType::LoadPlugin { name, rule, vers };
+            item.token_type = TokenType::LoadPlugin { plugin, rule, vers };
             return true;
         }
         false
@@ -66,7 +66,7 @@ impl ScriptParser {
     fn is_const_macro(&mut self, item: &mut Item) -> bool {
         let re = Regex::new(RE_CONST_MACRO).unwrap();
         if let Some(caps) = re.captures(&item.line) {
-            let name = caps
+            let cmacro = caps
                 .get(1)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
@@ -75,8 +75,8 @@ impl ScriptParser {
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
 
-            self.macros.insert(name.clone(), value.clone());
-            item.token_type = TokenType::ConstantMacro { name, value };
+            self.macros.insert(cmacro.clone(), value.clone());
+            item.token_type = TokenType::ConstantMacro { cmacro, value };
             return true;
         }
         false
@@ -85,7 +85,7 @@ impl ScriptParser {
     fn is_var_macro(&self, item: &mut Item) -> bool {
         let re = Regex::new(RE_VAR_MACRO).unwrap();
         if let Some(caps) = re.captures(&item.line) {
-            let name = caps
+            let vmacro = caps
                 .get(1)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
@@ -107,7 +107,7 @@ impl ScriptParser {
                 plugin,
                 command,
                 args,
-                name,
+                vmacro,
                 value,
             };
             return true;

@@ -7,13 +7,13 @@ use interfaces::{Item, TokenType, Validator};
 
 #[derive(Debug)]
 enum ValidateError {
-    InvalidStatement,
+    LoadedPlugins,
 }
 
 impl fmt::Display for ValidateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidateError::InvalidStatement => write!(f, "Invalid item in script"),
+            ValidateError::LoadedPlugins => write!(f, "Needed plugins not loaded"),
         }
     }
 }
@@ -27,31 +27,45 @@ impl ScriptValidator {
         ScriptValidator {}
     }
 
-    fn validate_plugins(&self, items: &mut Vec<Item>) -> bool {
+    fn validate_plugins_availability(&self, items: &mut Vec<Item>) -> bool {
         let mut loaded = HashSet::new();
         let mut used   = HashSet::new();
 
         for item in items {
             match &item.token_type {
-                TokenType::LoadPlugin{ name, .. } => {
-                    loaded.insert(name);
+                TokenType::LoadPlugin{ plugin, .. } => {
+                    loaded.insert(plugin);
                 }
                 TokenType::VariableMacro{ plugin, .. } => {
+                    used.insert(plugin);
+                }
+                TokenType::Command{ plugin, .. } => {
                     used.insert(plugin);
                 }
                 _ => {}
             }
         }
+
         println!("Loaded: {:?}", loaded);
         println!("Used  : {:?}", used);
+
+        if loaded != used {
+            let missing: HashSet<_> = used.difference(&loaded).cloned().collect();
+            println!("Missing  : {:?}", missing);
+            return false;
+        }
         true
     }
+
+//    fn load_plugins(&self, )
 }
 
 impl Validator for ScriptValidator {
     fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Validating script ...");
-        self.validate_plugins(items);
+        if false == self.validate_plugins_availability(items) {
+            return Err(Box::new(ValidateError::LoadedPlugins));
+        }
         Ok(())
     }
 }
