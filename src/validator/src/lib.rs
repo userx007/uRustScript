@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType, Validator};
+use plugin_loader::load_plugins;
 
 
 #[derive(Debug)]
@@ -58,10 +59,8 @@ impl ScriptValidator {
         true
     }
 
-    fn load_plugins(&self, plugins: &HashSet<String>) -> bool {
-        for plugin in plugins {
-            println!("Loaded {}", plugin);
-        }
+    fn validate_plugins(&self, plugins: &HashSet<String>) -> bool {
+        let _loaded_plugins = load_plugins(plugins, "target/debug");
         true
     }
 }
@@ -75,7 +74,7 @@ impl Validator for ScriptValidator {
             return Err(Box::new(ValidateError::PluginNotLoaded));
         }
 
-        if false == self.load_plugins(&loaded){
+        if false == self.validate_plugins(&loaded){
             return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
         Ok(())

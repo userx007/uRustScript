@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 interfaces = { path = "../interfaces" }
+plugin_loader = { path = "../plugin/plugin_loader" }

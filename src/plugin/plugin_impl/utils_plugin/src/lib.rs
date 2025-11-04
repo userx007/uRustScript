@@ -1,26 +1,11 @@
-use plugin_api::*;
+use plugin_api::{PluginInterface, PluginHandle, ParamsSet, ParamsGet};
 use plugin_macros::plugin_commands;
+
 use std::collections::HashMap;
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
+use std::ffi::{CStr, c_char};
+//use std::os::raw::c_char;
 
-// ---------------------- FFI Types ----------------------
-
-/// Opaque pointer type for FFI
 pub type PluginPtr = *mut std::ffi::c_void;
-
-/// Function pointer types for FFI
-pub type DispatchFn = extern "C" fn(PluginPtr, *const c_char, *const c_char) -> bool;
-pub type DestroyFn = extern "C" fn(PluginPtr);
-
-#[repr(C)]
-pub struct PluginHandle {
-    pub ptr: PluginPtr,
-    pub do_dispatch: DispatchFn,
-    pub destroy: DestroyFn,
-}
-
-// ---------------------- Plugin Struct ----------------------
 
 pub struct UtilsPlugin {
     initialized: bool,
