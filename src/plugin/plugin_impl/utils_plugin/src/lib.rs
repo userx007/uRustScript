@@ -1,4 +1,6 @@
-use plugin_api::{make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_GET_CMDS_KEY};
+use plugin_api::{
+    make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_GET_CMDS_KEY,
+};
 use plugin_macros::plugin_commands;
 use std::collections::HashMap;
 
@@ -7,7 +9,7 @@ pub struct UtilsPlugin {
     enabled: bool,
     result: String,
     commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
-    params_get : ParamsGet,
+    params_get: ParamsGet,
 }
 
 impl UtilsPlugin {
@@ -21,7 +23,9 @@ impl UtilsPlugin {
         };
 
         plugin.register_commands(); // procedural macro populates commands
-        plugin.params_get.insert(PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names());
+        plugin
+            .params_get
+            .insert(PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names());
         plugin
     }
 }
@@ -31,18 +35,18 @@ impl UtilsPlugin {
 #[allow(non_snake_case)]
 #[plugin_commands]
 impl UtilsPlugin {
-    fn ECHO(&mut self, args: &str) -> bool {
+    fn UECHO(&mut self, args: &str) -> bool {
         println!("Called ECHO with args: {}", args);
         self.result = args.to_string();
         true
     }
 
-    fn RESET(&mut self, _args: &str) -> bool {
+    fn URESET(&mut self, _args: &str) -> bool {
         self.result.clear();
         true
     }
 
-    fn PRINT(&mut self, args: &str) -> bool {
+    fn UPRINT(&mut self, args: &str) -> bool {
         println!("Plugin PRINT: {}", args);
         true
     }

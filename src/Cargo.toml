@@ -11,4 +11,5 @@ members = [
     "plugin/plugin_loader",
     "plugin/plugin_macros",
     "plugin/plugin_impl/utils_plugin",
+    "plugin/plugin_impl/math_plugin",
 ]

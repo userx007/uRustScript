@@ -1,88 +1,95 @@
-use plugin_api::*;
-use std::ffi::CString;
-use std::ffi::c_char;
+use plugin_api::{
+    make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_GET_CMDS_KEY,
+};
+use plugin_macros::plugin_commands;
+use std::collections::HashMap;
 
-struct MathPlugin {
+pub struct MathPlugin {
     initialized: bool,
     enabled: bool,
-    data: String,
+    result: String,
+    commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
+    params_get: ParamsGet,
 }
 
 impl MathPlugin {
-    extern "C" fn is_initialized(ptr: *const std::ffi::c_void) -> bool {
-        unsafe { (*(ptr as *const Self)).initialized }
-    }
+    pub fn new() -> Self {
+        let mut plugin = Self {
+            initialized: false,
+            enabled: false,
+            result: String::new(),
+            commands: HashMap::new(),
+            params_get: HashMap::new(),
+        };
 
-    extern "C" fn is_enabled(ptr: *const std::ffi::c_void) -> bool {
-        unsafe { (*(ptr as *const Self)).enabled }
-    }
-
-    extern "C" fn set_params(_ptr: *mut std::ffi::c_void, _params: *const std::ffi::c_void) -> bool {
-        true
-    }
-
-    extern "C" fn get_data(ptr: *const std::ffi::c_void) -> *const std::os::raw::c_char {
-        let plugin = unsafe { &*(ptr as *const Self) };
-        CString::new(plugin.data.clone()).unwrap().into_raw()
-    }
-
-    extern "C" fn reset_data(ptr: *mut std::ffi::c_void) {
-        unsafe { (*(ptr as *mut Self)).data.clear(); }
-    }
-
-    extern "C" fn do_init(ptr: *mut std::ffi::c_void, _user: *mut std::ffi::c_void) -> bool {
-        unsafe { (*(ptr as *mut Self)).initialized = true; }
-        true
-    }
-
-    extern "C" fn do_enable(ptr: *mut std::ffi::c_void) {
-        unsafe { (*(ptr as *mut Self)).enabled = true; }
-    }
-
-    extern "C" fn do_dispatch(ptr: *mut std::ffi::c_void, cmd: *const c_char, params: *const c_char) -> bool {
-        let cmd = unsafe { std::ffi::CStr::from_ptr(cmd) }.to_string_lossy();
-        let params = unsafe { std::ffi::CStr::from_ptr(params) }.to_string_lossy();
-        let plugin = unsafe { &mut *(ptr as *mut Self) };
-        plugin.data = format!("Executed {cmd}({params})");
-        true
-    }
-
-    extern "C" fn do_cleanup(ptr: *mut std::ffi::c_void) {
-        unsafe { (*(ptr as *mut Self)).initialized = false; }
+        plugin.register_commands(); // procedural macro populates commands
+        plugin
+            .params_get
+            .insert(PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names());
+        plugin
     }
 }
 
-static VTABLE: PluginVTable = PluginVTable {
-    is_initialized: MathPlugin::is_initialized,
-    is_enabled: MathPlugin::is_enabled,
-    set_params: MathPlugin::set_params,
-    get_data: MathPlugin::get_data,
-    reset_data: MathPlugin::reset_data,
-    do_init: MathPlugin::do_init,
-    do_enable: MathPlugin::do_enable,
-    do_dispatch: MathPlugin::do_dispatch,
-    do_cleanup: MathPlugin::do_cleanup,
-};
+// ---------------------- Commands ----------------------
 
-#[no_mangle]
-pub extern "C" fn create_plugin() -> Plugin {
-    let boxed = Box::new(MathPlugin {
-        initialized: false,
-        enabled: false,
-        data: String::new(),
-    });
-    Plugin {
-        instance: Box::into_raw(boxed) as *mut _,
-        vtable: &VTABLE,
+#[allow(non_snake_case)]
+#[plugin_commands]
+impl MathPlugin {
+    fn MECHO(&mut self, args: &str) -> bool {
+        println!("Called MECHO with args: {}", args);
+        self.result = args.to_string();
+        true
+    }
+
+    fn MRESET(&mut self, _args: &str) -> bool {
+        self.result.clear();
+        true
+    }
+
+    fn MPRINT(&mut self, args: &str) -> bool {
+        println!("Plugin PRINT: {}", args);
+        true
+    }
+
+    // Add more commands here as needed
+}
+
+// ---------------------- PluginInterface ----------------------
+
+impl PluginInterface for MathPlugin {
+    fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+    fn set_params(&mut self, _params: &ParamsSet) -> bool {
+        self.initialized = true;
+        true
+    }
+    fn get_params(&self, params: &mut ParamsGet) {
+        *params = self.params_get.clone();
+    }
+    fn reset_data(&mut self) {
+        self.result.clear()
+    }
+    fn get_data(&self) -> &str {
+        &self.result
+    }
+
+    fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
+        // avoid mutable/immutable borrow conflict
+        if let Some(f) = self.commands.remove(cmd) {
+            let result = f(self, args);
+            self.commands.insert(cmd.to_string(), f); // put closure back
+            result
+        } else {
+            false
+        }
     }
 }
 
 #[no_mangle]
-pub extern "C" fn destroy_plugin(p: *mut Plugin) {
-    if p.is_null() {
-        return;
-    }
-    unsafe {
-        drop(Box::from_raw((*p).instance as *mut MathPlugin));
-    }
+pub extern "C" fn plugin_create() -> PluginHandle {
+    make_handle(MathPlugin::new())
 }
