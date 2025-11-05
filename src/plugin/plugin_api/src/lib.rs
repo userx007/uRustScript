@@ -6,7 +6,7 @@ use std::ffi::{c_char, c_void, CStr, CString};
 // ---------------------------
 
 pub type ParamsSet = HashMap<String, String>;
-pub type ParamsGet = HashMap<String, String>;
+pub type ParamsGet = HashMap<String, Vec<&'static str>>;
 
 // ---------------------------
 // Plugin trait

@@ -30,7 +30,7 @@ pub fn plugin_commands(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let gen_command_names = quote! {
         impl #struct_name {
-            pub fn command_names() -> Vec<&'static str> {
+            pub fn command_names(&self) -> Vec<&'static str> {
                 vec![#(#method_names),*]
             }
 

@@ -7,6 +7,7 @@ pub struct UtilsPlugin {
     enabled: bool,
     result: String,
     commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
+    params_get : ParamsGet,
 }
 
 impl UtilsPlugin {
@@ -16,8 +17,14 @@ impl UtilsPlugin {
             enabled: false,
             result: String::new(),
             commands: HashMap::new(),
+            params_get: HashMap::new(),
         };
+
         plugin.register_commands(); // procedural macro populates commands
+        let cmds_names = plugin.command_names(); // get the command names as a Vec<&'static str>
+        println!("Names1: {:?}", cmds_names);
+        plugin.params_get.insert("cmds".to_string(), cmds_names);
+        println!("Names2: {:?}", plugin.params_get);
         plugin
     }
 }
@@ -59,7 +66,9 @@ impl PluginInterface for UtilsPlugin {
         self.initialized = true;
         true
     }
-    fn get_params(&self, _params: &mut ParamsGet) {}
+    fn get_params(&self, params: &mut ParamsGet) {
+        *params = self.params_get.clone();
+    }
     fn reset_data(&mut self) {
         self.result.clear()
     }
