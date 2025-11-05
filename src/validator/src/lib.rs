@@ -1,11 +1,10 @@
 use std::collections::HashSet;
 use std::error::Error;
+use std::ffi::{CStr, CString};
 use std::fmt;
-use std::ffi::{CString, CStr};
 
 use interfaces::{Item, TokenType, Validator};
 use plugin_loader::load_plugins;
-
 
 #[derive(Debug)]
 enum ValidateError {
@@ -75,13 +74,13 @@ impl ScriptValidator {
 
         (plugin.do_dispatch)(plugin.ptr, cmd.as_ptr(), args.as_ptr());
 
-unsafe {
-        let c_str = (plugin.get_data)(plugin.ptr);
-        let result = CStr::from_ptr(c_str).to_str().unwrap();
-        println!("Result from plugin: {}", result);
+        unsafe {
+            let c_str = (plugin.get_data)(plugin.ptr);
+            let result = CStr::from_ptr(c_str).to_str().unwrap();
+            println!("Result from plugin: {}", result);
 
-        (plugin.destroy)(plugin.ptr);
-}
+            (plugin.destroy)(plugin.ptr);
+        }
         true
     }
 }

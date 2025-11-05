@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::ffi::{c_char, c_void, CString, CStr};
+use std::ffi::{c_char, c_void, CStr, CString};
 
 // ---------------------------
 // Shared type definitions
@@ -49,7 +49,9 @@ pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
 pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
     extern "C" fn destroy<T: PluginInterface>(ptr: *mut c_void) {
         if !ptr.is_null() {
-            unsafe { drop(Box::from_raw(ptr as *mut T)); }
+            unsafe {
+                drop(Box::from_raw(ptr as *mut T));
+            }
         }
     }
 
@@ -61,7 +63,10 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         unsafe { &*(ptr as *mut T) }.is_enabled()
     }
 
-    extern "C" fn set_params<T: PluginInterface>(ptr: *mut c_void, params: *const ParamsSet) -> bool {
+    extern "C" fn set_params<T: PluginInterface>(
+        ptr: *mut c_void,
+        params: *const ParamsSet,
+    ) -> bool {
         unsafe { &mut *(ptr as *mut T) }.set_params(unsafe { &*params })
     }
 
@@ -103,42 +108,3 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         get_data: get_data::<T>,
     }
 }
-
-
-/*
-use std::ffi::{c_char, c_void};
-
-pub trait PluginInterface {
-    fn is_initialized(&self) -> bool;
-    fn is_enabled(&self) -> bool;
-    fn set_params(&mut self, params: &ParamsSet) -> bool;
-    fn get_params(&self, params: &mut ParamsGet);
-    fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool;
-    fn reset_data(&mut self);
-    fn get_data(&self) -> &str;
-}
-
-
-#[repr(C)]
-pub struct PluginHandle {
-    pub ptr: *mut c_void,
-
-    // Lifecycle and management
-    pub destroy: extern "C" fn(*mut c_void),
-
-    // Trait method mappings
-    pub is_initialized: extern "C" fn(*mut c_void) -> bool,
-    pub is_enabled: extern "C" fn(*mut c_void) -> bool,
-    pub set_params: extern "C" fn(*mut c_void, *const ParamsSet) -> bool,
-    pub get_params: extern "C" fn(*mut c_void, *mut ParamsGet),
-    pub do_dispatch: extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
-    pub reset_data: extern "C" fn(*mut c_void),
-    pub get_data: extern "C" fn(*mut c_void) -> *const c_char,
-}
-
-pub type PluginPtr = *mut c_void;
-pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
-pub type PluginDestroyFn = extern "C" fn(*mut std::ffi::c_void);
-pub type ParamsSet = std::collections::HashMap<String, String>;
-pub type ParamsGet = std::collections::HashMap<String, String>;
-*/
