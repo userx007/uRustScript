@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use std::ffi::{CStr, CString};
 use std::fmt;
 
 use interfaces::{Item, TokenType, Validator};
@@ -73,36 +72,49 @@ impl ScriptValidator {
         true
     }
 
-    fn validate_plugins(&self, plugins: &HashSet<String>) -> bool {
-        let plugins_to_load_plugins = load_plugins(plugins, "target/debug");
+    fn validate_plugins_used_commands(
+        &self,
+        plugins: &HashSet<String>,
+        plugin_used_commands: &mut HashMap<String, HashSet<String>>,
+    ) -> bool {
+        let plugins_to_load = load_plugins(plugins, "target/debug");
 
-        println!("vPlugin:{}", plugins_to_load_plugins[0].name);
+        for plugin in plugins_to_load {
+            let plugin_handle = &plugin.handle;
+            let mut params: ParamsGet = Default::default();
+            (plugin_handle.get_params)(plugin_handle.ptr, &mut params);
 
-        let plugin = &plugins_to_load_plugins[0].handle;
-        let cmd = CString::new("MECHO").unwrap();
-        let args = CString::new("Hello from host").unwrap();
+            if let Some(plugin_supported_commands) = params.get(PARAMS_GET_CMDS_KEY) {
+                println!(
+                    "📝 Plugin {} -> Commands : {:?}",
+                    plugin.name, plugin_supported_commands
+                );
 
-        (plugin.do_dispatch)(plugin.ptr, cmd.as_ptr(), args.as_ptr());
+                // Find which commands are used in the script for this plugin
+                let used_for_this_plugin = plugin_used_commands
+                    .get(&plugin.name)
+                    .cloned()
+                    .unwrap_or_default();
 
-        unsafe {
-            let c_str = (plugin.get_data)(plugin.ptr);
-            let result = CStr::from_ptr(c_str).to_str().unwrap();
-            println!("Result from plugin: {}", result);
+                // Check which script commands are NOT supported by plugin
+                let unsupported_used_commands: Vec<_> = used_for_this_plugin
+                    .iter()
+                    .filter(|cmd| !plugin_supported_commands.contains(&cmd.as_str()))
+                    .collect();
 
-            // (plugin.destroy)(plugin.ptr);
+                if !unsupported_used_commands.is_empty() {
+                    println!(
+                        "❌ Plugin '{}' missing script commands: {:?}",
+                        plugin.name, unsupported_used_commands
+                    );
+                    return false;
+                }
+            } else {
+                println!("❌ Section {:?} not found in ParamsGet", PARAMS_GET_CMDS_KEY);
+                return false;
+            }
         }
-
-        let mut params: ParamsGet = Default::default();
-        (plugin.get_params)(plugin.ptr, &mut params);
-
-        println!("params: {:?}", params);
-
-        if let Some(cmds) = params.get(PARAMS_GET_CMDS_KEY) {
-            println!("Commands list: {:?}", cmds);
-        } else {
-            println!("Not found..");
-        }
-
+        println!("✅ Used commands supported by plugins");
         true
     }
 }
@@ -110,22 +122,23 @@ impl ScriptValidator {
 impl Validator for ScriptValidator {
     fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         let mut plugins_to_load: HashSet<String> = HashSet::new();
-        let mut plugins_commands: HashMap<String, HashSet<String>> = HashMap::new();
+        let mut plugin_used_commands: HashMap<String, HashSet<String>> = HashMap::new();
 
         println!("Validating script ...");
         if false
             == self.validate_plugins_availability(
                 items,
                 &mut plugins_to_load,
-                &mut plugins_commands,
+                &mut plugin_used_commands,
             )
         {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }
 
-        println!("HM:{:?}", plugins_commands);
+        println!("HM:{:?}", plugin_used_commands);
 
-        if false == self.validate_plugins(&plugins_to_load) {
+        if false == self.validate_plugins_used_commands(&plugins_to_load, &mut plugin_used_commands)
+        {
             return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
         Ok(())
@@ -135,11 +148,11 @@ impl Validator for ScriptValidator {
 /*
 
     fn validate_plugins(&self, plugins: &HashSet<String>) -> bool {
-        let plugins_to_load_plugins = load_plugins(plugins, "target/debug");
+        let plugins_to_load = load_plugins(plugins, "target/debug");
 
-        println!("vPlugin:{}", plugins_to_load_plugins[0].name);
+        println!("vPlugin:{}", plugins_to_load[0].name);
 
-        let plugin = &plugins_to_load_plugins[0].handle;
+        let plugin = &plugins_to_load[0].handle;
         let cmd = CString::new("ECHO").unwrap();
         let args = CString::new("Hello from host").unwrap();
 
