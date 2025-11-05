@@ -10,7 +10,6 @@ pub trait PluginInterface {
     fn get_data(&self) -> &str;
 }
 
-
 #[repr(C)]
 pub struct PluginHandle {
     pub ptr: *mut std::ffi::c_void,

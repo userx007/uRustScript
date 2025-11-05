@@ -5,6 +5,7 @@ use std::fmt;
 use interfaces::{Item, TokenType, Validator};
 use plugin_loader::load_plugins;
 
+use std::ffi::CString;
 
 #[derive(Debug)]
 enum ValidateError {
@@ -30,18 +31,22 @@ impl ScriptValidator {
         ScriptValidator {}
     }
 
-    fn validate_plugins_availability(&self, items: &mut Vec<Item>, plugins :&mut HashSet<String>) -> bool {
+    fn validate_plugins_availability(
+        &self,
+        items: &mut Vec<Item>,
+        plugins: &mut HashSet<String>,
+    ) -> bool {
         let mut used: HashSet<String> = HashSet::new();
 
         for item in items {
             match &item.token_type {
-                TokenType::LoadPlugin{ plugin, .. } => {
+                TokenType::LoadPlugin { plugin, .. } => {
                     plugins.insert(plugin.to_string());
                 }
-                TokenType::VariableMacro{ plugin, .. } => {
+                TokenType::VariableMacro { plugin, .. } => {
                     used.insert(plugin.to_string());
                 }
-                TokenType::Command{ plugin, .. } => {
+                TokenType::Command { plugin, .. } => {
                     used.insert(plugin.to_string());
                 }
                 _ => {}
@@ -60,7 +65,16 @@ impl ScriptValidator {
     }
 
     fn validate_plugins(&self, plugins: &HashSet<String>) -> bool {
-        let _loaded_plugins = load_plugins(plugins, "target/debug");
+        let loaded_plugins = load_plugins(plugins, "target/debug");
+
+        println!("vPlugin:{}", loaded_plugins[0].name);
+
+        let handle = &loaded_plugins[0].handle;
+        let cmd = CString::new("ECHO").unwrap();
+        let args = CString::new("Hello from host").unwrap();
+
+        (handle.do_dispatch)(handle.ptr, cmd.as_ptr(), args.as_ptr());
+
         true
     }
 }
@@ -74,7 +88,7 @@ impl Validator for ScriptValidator {
             return Err(Box::new(ValidateError::PluginNotLoaded));
         }
 
-        if false == self.validate_plugins(&loaded){
+        if false == self.validate_plugins(&loaded) {
             return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
         Ok(())

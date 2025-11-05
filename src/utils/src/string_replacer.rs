@@ -72,7 +72,6 @@ fn main() {
 }
 */
 
-
 pub fn replace_macros(line: &mut String, map: &HashMap<String, String>) -> bool {
     if !line.contains('$') || map.is_empty() {
         return false;

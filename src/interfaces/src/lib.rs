@@ -56,8 +56,6 @@ pub trait Validator {
     fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
 }
 
-
 pub trait Runner {
     fn run_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
 }
-

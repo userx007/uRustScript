@@ -12,8 +12,8 @@ const LIB_EXT: &str = "so";
 #[cfg(target_os = "macos")]
 const LIB_EXT: &str = "dylib";
 
-
 pub struct LoadedPlugin {
+    pub name: String,
     pub library: Library,
     pub handle: PluginHandle,
 }
@@ -22,7 +22,6 @@ pub fn build_library_name(name: &str) -> String {
     let name = name.to_lowercase();
     format!("lib{0}_plugin.{1}", name, LIB_EXT)
 }
-
 
 pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> Vec<LoadedPlugin> {
     let mut plugins = Vec::new();
@@ -35,12 +34,15 @@ pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> Vec<Loa
             let library = Library::new(&path).unwrap();
             let create: Symbol<PluginCreateFn> = library.get(b"plugin_create").unwrap();
             let handle = create(); // <-- returns PluginHandle now
-            plugins.push(LoadedPlugin { library, handle });
+            plugins.push(LoadedPlugin {
+                name: name.to_string(),
+                library,
+                handle,
+            });
         }
     }
     plugins
 }
-
 
 pub fn unload_plugins(plugins: Vec<LoadedPlugin>) {
     for loaded in plugins {

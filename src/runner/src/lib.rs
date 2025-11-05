@@ -1,4 +1,4 @@
-use interfaces::{Item, TokenType, Runner};
+use interfaces::{Item, Runner, TokenType};
 use std::error::Error;
 use std::fmt;
 

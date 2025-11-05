@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemImpl, ImplItem};
+use syn::{parse_macro_input, ImplItem, ItemImpl};
 
 #[proc_macro_attribute]
 pub fn plugin_commands(_attr: TokenStream, item: TokenStream) -> TokenStream {

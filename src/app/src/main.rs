@@ -1,10 +1,10 @@
 use std::error::Error;
 
-use interfaces::{Item, Reader, Parser, Validator, Runner};
-use reader::ScriptReader;
+use interfaces::{Item, Parser, Reader, Runner, Validator};
 use parser::ScriptParser;
-use validator::ScriptValidator;
+use reader::ScriptReader;
 use runner::ScriptRunner;
+use validator::ScriptValidator;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut items = Vec::<Item>::new();

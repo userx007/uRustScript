@@ -1,8 +1,8 @@
-use plugin_api::{PluginInterface, PluginHandle, ParamsSet, ParamsGet};
+use plugin_api::{ParamsGet, ParamsSet, PluginHandle, PluginInterface};
 use plugin_macros::plugin_commands;
 
 use std::collections::HashMap;
-use std::ffi::{CStr, c_char};
+use std::ffi::{c_char, CStr};
 //use std::os::raw::c_char;
 
 pub type PluginPtr = *mut std::ffi::c_void;
@@ -32,6 +32,7 @@ impl UtilsPlugin {
 #[plugin_commands]
 impl UtilsPlugin {
     fn ECHO(&mut self, args: &str) -> bool {
+        println!("Called ECHO with args: {}", args);
         self.result = args.to_string();
         true
     }
@@ -52,12 +53,23 @@ impl UtilsPlugin {
 // ---------------------- PluginInterface ----------------------
 
 impl PluginInterface for UtilsPlugin {
-    fn is_initialized(&self) -> bool { self.initialized }
-    fn is_enabled(&self) -> bool { self.enabled }
-    fn set_params(&mut self, _params: &ParamsSet) -> bool { self.initialized = true; true }
+    fn is_initialized(&self) -> bool {
+        self.initialized
+    }
+    fn is_enabled(&self) -> bool {
+        self.enabled
+    }
+    fn set_params(&mut self, _params: &ParamsSet) -> bool {
+        self.initialized = true;
+        true
+    }
     fn get_params(&self, _params: &mut ParamsGet) {}
-    fn reset_data(&mut self) { self.result.clear() }
-    fn get_data(&self) -> &str { &self.result }
+    fn reset_data(&mut self) {
+        self.result.clear()
+    }
+    fn get_data(&self) -> &str {
+        &self.result
+    }
 
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
         // avoid mutable/immutable borrow conflict
@@ -74,7 +86,9 @@ impl PluginInterface for UtilsPlugin {
 // ---------------------- FFI Wrappers ----------------------
 
 extern "C" fn utils_dispatch(ptr: PluginPtr, cmd: *const c_char, args: *const c_char) -> bool {
-    if ptr.is_null() { return false; }
+    if ptr.is_null() {
+        return false;
+    }
 
     let plugin = unsafe { &mut *(ptr as *mut UtilsPlugin) };
 
@@ -86,7 +100,9 @@ extern "C" fn utils_dispatch(ptr: PluginPtr, cmd: *const c_char, args: *const c_
 
 extern "C" fn utils_destroy(ptr: PluginPtr) {
     if !ptr.is_null() {
-        unsafe { drop(Box::from_raw(ptr as *mut UtilsPlugin)); }
+        unsafe {
+            drop(Box::from_raw(ptr as *mut UtilsPlugin));
+        }
     }
 }
 
