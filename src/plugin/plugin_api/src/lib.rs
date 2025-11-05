@@ -2,6 +2,11 @@ use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CStr, CString};
 
 // ---------------------------
+// Shared constants
+// ---------------------------
+pub const PARAMS_GET_CMDS_KEY: &'static str = "cmds";
+
+// ---------------------------
 // Shared type definitions
 // ---------------------------
 

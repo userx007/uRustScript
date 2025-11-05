@@ -1,4 +1,4 @@
-use plugin_api::{make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface};
+use plugin_api::{make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_GET_CMDS_KEY};
 use plugin_macros::plugin_commands;
 use std::collections::HashMap;
 
@@ -21,10 +21,7 @@ impl UtilsPlugin {
         };
 
         plugin.register_commands(); // procedural macro populates commands
-        let cmds_names = plugin.command_names(); // get the command names as a Vec<&'static str>
-        println!("Names1: {:?}", cmds_names);
-        plugin.params_get.insert("cmds".to_string(), cmds_names);
-        println!("Names2: {:?}", plugin.params_get);
+        plugin.params_get.insert(PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names());
         plugin
     }
 }

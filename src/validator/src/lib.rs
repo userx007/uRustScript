@@ -5,7 +5,7 @@ use std::fmt;
 
 use interfaces::{Item, TokenType, Validator};
 use plugin_loader::load_plugins;
-use plugin_api::{ParamsGet};
+use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY};
 
 #[derive(Debug)]
 enum ValidateError {
@@ -88,7 +88,7 @@ impl ScriptValidator {
 
         println!("params: {:?}", params);
 
-        if let Some(cmds) = params.get("cmds") {
+        if let Some(cmds) = params.get(PARAMS_GET_CMDS_KEY) {
             println!("Commands list: {:?}", cmds);
         } else {
             println!("Not found..");
