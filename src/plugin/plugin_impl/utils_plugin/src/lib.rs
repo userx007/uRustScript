@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ffi::{CString, CStr, c_char};
 
-use plugin_api::{ParamsGet, ParamsSet, PluginHandle, PluginInterface, PluginPtr};
+use plugin_api::{PluginInterface, PluginHandle, PluginPtr, ParamsGet, ParamsSet, make_handle };
 use plugin_macros::plugin_commands;
 
 
@@ -81,7 +81,12 @@ impl PluginInterface for UtilsPlugin {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn plugin_create() -> PluginHandle {
+    make_handle(UtilsPlugin::new())
+}
 
+/*
 // ---------------------- FFI Wrappers ----------------------
 
 extern "C" fn plugin_is_initialized(ptr: PluginPtr) -> bool {
@@ -170,7 +175,7 @@ pub extern "C" fn plugin_create() -> PluginHandle {
         get_data: plugin_get_data,
     }
 }
-
+*/
 
 /* ---------------------- Example host usage ----------------------
 
