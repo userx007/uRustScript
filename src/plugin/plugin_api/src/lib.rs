@@ -1,4 +1,4 @@
-use std::ffi::c_char;
+use std::ffi::{c_char, c_void};
 
 pub trait PluginInterface {
     fn is_initialized(&self) -> bool;
@@ -10,16 +10,26 @@ pub trait PluginInterface {
     fn get_data(&self) -> &str;
 }
 
+
 #[repr(C)]
 pub struct PluginHandle {
-    pub ptr: *mut std::ffi::c_void,
-    pub do_dispatch: extern "C" fn(*mut std::ffi::c_void, *const c_char, *const c_char) -> bool,
-    pub destroy: extern "C" fn(*mut std::ffi::c_void),
+    pub ptr: *mut c_void,
+
+    // Lifecycle and management
+    pub destroy: extern "C" fn(*mut c_void),
+
+    // Trait method mappings
+    pub is_initialized: extern "C" fn(*mut c_void) -> bool,
+    pub is_enabled: extern "C" fn(*mut c_void) -> bool,
+    pub set_params: extern "C" fn(*mut c_void, *const ParamsSet) -> bool,
+    pub get_params: extern "C" fn(*mut c_void, *mut ParamsGet),
+    pub do_dispatch: extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
+    pub reset_data: extern "C" fn(*mut c_void),
+    pub get_data: extern "C" fn(*mut c_void) -> *const c_char,
 }
 
+pub type PluginPtr = *mut c_void;
 pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
 pub type PluginDestroyFn = extern "C" fn(*mut std::ffi::c_void);
-pub type PluginPtr = *mut std::ffi::c_void;
-
 pub type ParamsSet = std::collections::HashMap<String, String>;
 pub type ParamsGet = std::collections::HashMap<String, String>;
