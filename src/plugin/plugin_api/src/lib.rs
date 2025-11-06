@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use libloading::Library;
+use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CStr, CString};
 
 // ---------------------------
@@ -11,7 +11,7 @@ pub const PARAMS_GET_CMDS_KEY: &'static str = "cmds";
 // Shared type definitions
 // ---------------------------
 
-pub type PluginIdentifier = HashMap<String, (PluginHandle, Library)>;
+pub type PluginIdentifier = HashMap<String, (*mut PluginHandle, Library)>;
 pub type ParamsSet = HashMap<String, String>;
 pub type ParamsGet = HashMap<String, Vec<&'static str>>;
 

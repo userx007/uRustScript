@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType, Validator};
-use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY, PluginIdentifier};
+use plugin_api::{ParamsGet, PluginIdentifier, PARAMS_GET_CMDS_KEY};
 use plugin_loader::load_plugins;
 
 #[derive(Debug)]
@@ -16,9 +16,13 @@ enum ValidateError {
 impl fmt::Display for ValidateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidateError::PluginNotSetForLoading =>  write!(f, "Needed plugins not plugins_to_load"),
+            ValidateError::PluginNotSetForLoading => {
+                write!(f, "Needed plugins not plugins_to_load")
+            }
             ValidateError::PluginLoadingFailed => write!(f, "Failed to load plugin"),
-            ValidateError::PluginCommandAvailability => write!(f, "Command not supported by plugin"),
+            ValidateError::PluginCommandAvailability => {
+                write!(f, "Command not supported by plugin")
+            }
         }
     }
 }
@@ -72,7 +76,11 @@ impl ScriptValidator {
         true
     }
 
-    fn validate_plugins_loading(&self, plugins: &HashSet<String>, plugins_loaded: &mut PluginIdentifier) -> bool {
+    fn validate_plugins_loading(
+        &self,
+        plugins: &HashSet<String>,
+        plugins_loaded: &mut PluginIdentifier,
+    ) -> bool {
         *plugins_loaded = load_plugins(plugins, "target/debug");
         true
     }
@@ -82,10 +90,19 @@ impl ScriptValidator {
         plugins_loaded: &PluginIdentifier,
         plugin_used_commands: &mut HashMap<String, HashSet<String>>,
     ) -> bool {
-        for(plugin_name, (plugin_handle, _)) in plugins_loaded {
-            //let plugin_handle = &plugin.handle;
+        for (plugin_name, (plugin_handle, _)) in plugins_loaded {
             let mut params: ParamsGet = Default::default();
-            (plugin_handle.get_params)(plugin_handle.ptr, &mut params);
+
+            unsafe {
+                if plugin_handle.is_null() {
+                    eprintln!("❌ Plugin '{}' handle is null", plugin_name);
+                    return false;
+                }
+
+                // `plugin_handle` is &*mut PluginHandle, so deref twice:
+                let plugin = &mut **plugin_handle; // &mut PluginHandle
+                (plugin.get_params)(plugin.ptr, &mut params);
+            }
 
             if let Some(plugin_supported_commands) = params.get(PARAMS_GET_CMDS_KEY) {
                 println!(
@@ -113,19 +130,46 @@ impl ScriptValidator {
                     return false;
                 }
             } else {
-                println!("❌ Section {:?} not found in ParamsGet", PARAMS_GET_CMDS_KEY);
+                println!(
+                    "❌ Section {:?} not found in ParamsGet",
+                    PARAMS_GET_CMDS_KEY
+                );
                 return false;
             }
         }
+
         println!("✅ Used commands supported by plugins");
         true
     }
 
-    fn insert_plugin_pointers(&self, items: &mut Vec<Item>, plugins: PluginIdentifier) -> bool {
+    fn insert_plugin_pointers(&self, items: &mut Vec<Item>, plugins: &PluginIdentifier) -> bool {
         for item in items {
-            if let TokenType::VariableMacro {plugin, pluginptr, ..} | TokenType::Command {plugin, pluginptr, ..} = &mut item.token_type {
-                if let Some((got_plugin_ptr,_)) = plugins.get(plugin) {
-                    *pluginptr = got_plugin_ptr.ptr;
+            if let TokenType::VariableMacro {
+                plugin, pluginptr, ..
+            }
+            | TokenType::Command {
+                plugin, pluginptr, ..
+            } = &mut item.token_type
+            {
+                if let Some((got_plugin_ptr, _)) = plugins.get(plugin) {
+                    unsafe {
+                        if got_plugin_ptr.is_null() {
+                            eprintln!("⚠️ Plugin '{}' handle is null", plugin);
+                            continue;
+                        }
+
+                        // Deref twice to get the PluginHandle structure
+                        let handle = &mut **got_plugin_ptr;
+
+                        if !handle.ptr.is_null() {
+                            *pluginptr = handle.ptr;
+                            println!("🔗 Set pluginptr for '{}' to {:?}", plugin, *pluginptr);
+                        } else {
+                            eprintln!("⚠️ Plugin '{}' internal ptr is null", plugin);
+                        }
+                    }
+                } else {
+                    eprintln!("⚠️ Plugin '{}' not found in loaded plugins", plugin);
                 }
             }
         }
@@ -141,57 +185,28 @@ impl Validator for ScriptValidator {
 
         println!("Validating script ...");
 
-        if false == self.validate_plugins_availability(
+        if false
+            == self.validate_plugins_availability(
                 items,
                 &mut plugins_to_load,
-                &mut plugin_used_commands,) {
+                &mut plugin_used_commands,
+            )
+        {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }
 
-        if false == self.validate_plugins_loading(&plugins_to_load, &mut plugins_loaded){
+        if false == self.validate_plugins_loading(&plugins_to_load, &mut plugins_loaded) {
             return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
 
         if false == self.validate_plugins_commands(&plugins_loaded, &mut plugin_used_commands) {
             return Err(Box::new(ValidateError::PluginCommandAvailability));
         }
+
+        if false == self.insert_plugin_pointers(items, &plugins_loaded) {
+            return Err(Box::new(ValidateError::PluginCommandAvailability));
+        }
+
         Ok(())
     }
 }
-
-/*
-
-    fn validate_plugins(&self, plugins: &HashSet<String>) -> bool {
-        let plugins_to_load = load_plugins(plugins, "target/debug");
-
-        println!("vPlugin:{}", plugins_to_load[0].name);
-
-        let plugin = &plugins_to_load[0].handle;
-        let cmd = CString::new("ECHO").unwrap();
-        let args = CString::new("Hello from host").unwrap();
-
-        (plugin.do_dispatch)(plugin.ptr, cmd.as_ptr(), args.as_ptr());
-
-        unsafe {
-            let c_str = (plugin.get_data)(plugin.ptr);
-            let result = CStr::from_ptr(c_str).to_str().unwrap();
-            println!("Result from plugin: {}", result);
-
-            // (plugin.destroy)(plugin.ptr);
-        }
-
-        let mut params: ParamsGet = Default::default();
-        (plugin.get_params)(plugin.ptr, &mut params);
-
-        println!("params: {:?}", params);
-
-        if let Some(cmds) = params.get(PARAMS_GET_CMDS_KEY) {
-            println!("Commands list: {:?}", cmds);
-        } else {
-            println!("Not found..");
-        }
-
-        true
-    }
-
-*/
