@@ -3,22 +3,22 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType, Validator};
-use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY};
+use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY, PluginIdentifier};
 use plugin_loader::load_plugins;
 
 #[derive(Debug)]
 enum ValidateError {
     PluginNotSetForLoading,
     PluginLoadingFailed,
+    PluginCommandAvailability,
 }
 
 impl fmt::Display for ValidateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ValidateError::PluginNotSetForLoading => {
-                write!(f, "Needed plugins not plugins_to_load")
-            }
+            ValidateError::PluginNotSetForLoading =>  write!(f, "Needed plugins not plugins_to_load"),
             ValidateError::PluginLoadingFailed => write!(f, "Failed to load plugin"),
+            ValidateError::PluginCommandAvailability => write!(f, "Command not supported by plugin"),
         }
     }
 }
@@ -72,14 +72,17 @@ impl ScriptValidator {
         true
     }
 
-    fn validate_plugins_used_commands(
+    fn validate_plugins_loading(&self, plugins: &HashSet<String>, plugins_loaded: &mut Vec<PluginIdentifier>) -> bool {
+        *plugins_loaded = load_plugins(plugins, "target/debug");
+        true
+    }
+
+    fn validate_plugins_commands(
         &self,
-        plugins: &HashSet<String>,
+        plugins_loaded: &Vec<PluginIdentifier>,
         plugin_used_commands: &mut HashMap<String, HashSet<String>>,
     ) -> bool {
-        let plugins_to_load = load_plugins(plugins, "target/debug");
-
-        for plugin in plugins_to_load {
+        for plugin in plugins_loaded {
             let plugin_handle = &plugin.handle;
             let mut params: ParamsGet = Default::default();
             (plugin_handle.get_params)(plugin_handle.ptr, &mut params);
@@ -122,24 +125,24 @@ impl ScriptValidator {
 impl Validator for ScriptValidator {
     fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         let mut plugins_to_load: HashSet<String> = HashSet::new();
+        let mut plugins_loaded: Vec<PluginIdentifier> = Vec::new();
         let mut plugin_used_commands: HashMap<String, HashSet<String>> = HashMap::new();
 
         println!("Validating script ...");
-        if false
-            == self.validate_plugins_availability(
+
+        if false == self.validate_plugins_availability(
                 items,
                 &mut plugins_to_load,
-                &mut plugin_used_commands,
-            )
-        {
+                &mut plugin_used_commands,) {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }
 
-        println!("HM:{:?}", plugin_used_commands);
-
-        if false == self.validate_plugins_used_commands(&plugins_to_load, &mut plugin_used_commands)
-        {
+        if false == self.validate_plugins_loading(&plugins_to_load, &mut plugins_loaded){
             return Err(Box::new(ValidateError::PluginLoadingFailed));
+        }
+
+        if false == self.validate_plugins_commands(&plugins_loaded, &mut plugin_used_commands) {
+            return Err(Box::new(ValidateError::PluginCommandAvailability));
         }
         Ok(())
     }

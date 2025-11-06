@@ -1,3 +1,4 @@
+use libloading::{Library};
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CStr, CString};
 
@@ -25,6 +26,12 @@ pub trait PluginInterface {
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool;
     fn reset_data(&mut self);
     fn get_data(&self) -> &str;
+}
+
+pub struct PluginIdentifier {
+    pub name: String,
+    pub library: Library,
+    pub handle: PluginHandle,
 }
 
 // ---------------------------

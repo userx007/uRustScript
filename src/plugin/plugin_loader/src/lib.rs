@@ -1,5 +1,5 @@
 use libloading::{Library, Symbol};
-use plugin_api::{PluginCreateFn, PluginHandle};
+use plugin_api::{PluginCreateFn, PluginIdentifier};
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -12,18 +12,13 @@ const LIB_EXT: &str = "so";
 #[cfg(target_os = "macos")]
 const LIB_EXT: &str = "dylib";
 
-pub struct LoadedPlugin {
-    pub name: String,
-    pub library: Library,
-    pub handle: PluginHandle,
-}
 
 pub fn build_library_name(name: &str) -> String {
     let name = name.to_lowercase();
     format!("lib{0}_plugin.{1}", name, LIB_EXT)
 }
 
-pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> Vec<LoadedPlugin> {
+pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> Vec<PluginIdentifier> {
     let mut plugins = Vec::new();
 
     for name in plugin_names {
@@ -33,8 +28,8 @@ pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> Vec<Loa
         unsafe {
             let library = Library::new(&path).unwrap();
             let create: Symbol<PluginCreateFn> = library.get(b"plugin_create").unwrap();
-            let handle = create(); // <-- returns PluginHandle now
-            plugins.push(LoadedPlugin {
+            let handle = create(); // type PluginHandle
+            plugins.push(PluginIdentifier {
                 name: name.to_string(),
                 library,
                 handle,
@@ -44,7 +39,7 @@ pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> Vec<Loa
     plugins
 }
 
-pub fn unload_plugins(plugins: Vec<LoadedPlugin>) {
+pub fn unload_plugins(plugins: Vec<PluginIdentifier>) {
     for loaded in plugins {
         (loaded.handle.destroy)(loaded.handle.ptr);
     }

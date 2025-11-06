@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 interfaces = { path = "../../interfaces" }
+libloading = "0.8"

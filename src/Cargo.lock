@@ -70,6 +70,7 @@ name = "plugin_api"
 version = "0.1.0"
 dependencies = [
  "interfaces",
+ "libloading",
 ]
 
 [[package]]
