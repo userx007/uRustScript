@@ -120,6 +120,17 @@ impl ScriptValidator {
         println!("✅ Used commands supported by plugins");
         true
     }
+
+    fn insert_plugin_pointers(&self, items: &mut Vec<Item>, plugins: PluginIdentifier) -> bool {
+        for item in items {
+            if let TokenType::VariableMacro {plugin, pluginptr, ..} | TokenType::Command {plugin, pluginptr, ..} = &mut item.token_type {
+                if let Some((got_plugin_ptr,_)) = plugins.get(plugin) {
+                    *pluginptr = got_plugin_ptr.ptr;
+                }
+            }
+        }
+        true
+    }
 }
 
 impl Validator for ScriptValidator {

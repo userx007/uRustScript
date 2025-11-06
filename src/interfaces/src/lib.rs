@@ -1,4 +1,7 @@
 use std::error::Error;
+use std::ffi::c_void;
+
+pub type PluginPtr = *mut c_void;
 
 #[derive(Debug, Default)]
 pub struct Item {
@@ -25,11 +28,13 @@ pub enum TokenType {
         args: String,
         vmacro: String,
         value: String,
+        pluginptr: PluginPtr,
     },
     Command {
         plugin: String,
         command: String,
         args: String,
+        pluginptr: PluginPtr,
     },
     IfGoTo {
         condition: String,

@@ -102,6 +102,7 @@ impl ScriptParser {
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
             let value = "".into();
+            let pluginptr = std::ptr::null_mut();
 
             item.token_type = TokenType::VariableMacro {
                 plugin,
@@ -109,6 +110,7 @@ impl ScriptParser {
                 args,
                 vmacro,
                 value,
+                pluginptr,
             };
             return true;
         }
@@ -130,11 +132,13 @@ impl ScriptParser {
                 .get(3)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
+            let pluginptr = std::ptr::null_mut();
 
             item.token_type = TokenType::Command {
                 plugin,
                 command,
                 args,
+                pluginptr,
             };
             return true;
         }
