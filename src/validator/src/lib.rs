@@ -72,30 +72,30 @@ impl ScriptValidator {
         true
     }
 
-    fn validate_plugins_loading(&self, plugins: &HashSet<String>, plugins_loaded: &mut Vec<PluginIdentifier>) -> bool {
+    fn validate_plugins_loading(&self, plugins: &HashSet<String>, plugins_loaded: &mut PluginIdentifier) -> bool {
         *plugins_loaded = load_plugins(plugins, "target/debug");
         true
     }
 
     fn validate_plugins_commands(
         &self,
-        plugins_loaded: &Vec<PluginIdentifier>,
+        plugins_loaded: &PluginIdentifier,
         plugin_used_commands: &mut HashMap<String, HashSet<String>>,
     ) -> bool {
-        for plugin in plugins_loaded {
-            let plugin_handle = &plugin.handle;
+        for(plugin_name, (plugin_handle, _)) in plugins_loaded {
+            //let plugin_handle = &plugin.handle;
             let mut params: ParamsGet = Default::default();
             (plugin_handle.get_params)(plugin_handle.ptr, &mut params);
 
             if let Some(plugin_supported_commands) = params.get(PARAMS_GET_CMDS_KEY) {
                 println!(
                     "📝 Plugin {} -> Commands : {:?}",
-                    plugin.name, plugin_supported_commands
+                    plugin_name, plugin_supported_commands
                 );
 
                 // Find which commands are used in the script for this plugin
                 let used_for_this_plugin = plugin_used_commands
-                    .get(&plugin.name)
+                    .get(plugin_name)
                     .cloned()
                     .unwrap_or_default();
 
@@ -108,7 +108,7 @@ impl ScriptValidator {
                 if !unsupported_used_commands.is_empty() {
                     println!(
                         "❌ Plugin '{}' missing script commands: {:?}",
-                        plugin.name, unsupported_used_commands
+                        plugin_name, unsupported_used_commands
                     );
                     return false;
                 }
@@ -125,7 +125,7 @@ impl ScriptValidator {
 impl Validator for ScriptValidator {
     fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         let mut plugins_to_load: HashSet<String> = HashSet::new();
-        let mut plugins_loaded: Vec<PluginIdentifier> = Vec::new();
+        let mut plugins_loaded: PluginIdentifier = HashMap::new();
         let mut plugin_used_commands: HashMap<String, HashSet<String>> = HashMap::new();
 
         println!("Validating script ...");

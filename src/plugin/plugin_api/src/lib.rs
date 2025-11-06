@@ -1,5 +1,5 @@
-use libloading::{Library};
 use std::collections::HashMap;
+use libloading::Library;
 use std::ffi::{c_char, c_void, CStr, CString};
 
 // ---------------------------
@@ -11,6 +11,7 @@ pub const PARAMS_GET_CMDS_KEY: &'static str = "cmds";
 // Shared type definitions
 // ---------------------------
 
+pub type PluginIdentifier = HashMap<String, (PluginHandle, Library)>;
 pub type ParamsSet = HashMap<String, String>;
 pub type ParamsGet = HashMap<String, Vec<&'static str>>;
 
@@ -26,12 +27,6 @@ pub trait PluginInterface {
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool;
     fn reset_data(&mut self);
     fn get_data(&self) -> &str;
-}
-
-pub struct PluginIdentifier {
-    pub name: String,
-    pub library: Library,
-    pub handle: PluginHandle,
 }
 
 // ---------------------------
