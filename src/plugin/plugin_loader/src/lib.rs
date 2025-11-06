@@ -28,9 +28,7 @@ pub fn load_plugins(plugin_names: &HashSet<String>, plugin_dir: &str) -> PluginI
             let library = Library::new(&path).unwrap();
             let create: Symbol<PluginCreateFn> = library.get(b"plugin_create").unwrap();
             let handle = create(); // type PluginHandle
-
-            let boxed_handle = Box::new(handle); // allocate once
-            let plugin_ptr = Box::into_raw(boxed_handle);
+            let plugin_ptr = Box::into_raw(Box::new(handle));
 
             plugins.insert(name.to_string(), (plugin_ptr, library));
         }

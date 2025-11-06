@@ -2,6 +2,9 @@ use interfaces::{Item, Runner, TokenType};
 use std::error::Error;
 use std::fmt;
 
+use plugin_api::{PluginHandle, plugin_do_dispatch};
+
+
 #[derive(Debug)]
 enum RunError {
     InvalidStatement,
@@ -30,8 +33,21 @@ impl Runner for ScriptRunner {
         println!("Running script ...");
 
         for item in items {
-            println!("{:?}", item);
+            match &mut item.token_type {
+                TokenType::VariableMacro { command, args, pluginptr, .. }
+                | TokenType::Command { command, args, pluginptr, .. } => {
+                    unsafe {
+                        if plugin_do_dispatch(*pluginptr as *mut PluginHandle, command, args) {
+                            println!("✅ Executed {} {}", command, args);
+                        } else {
+                            eprintln!("❌ Failed to execute {} {}", command, args);
+                        }
+                    }
+                }
+                _ => {}
+            }
         }
+
         Ok(())
     }
 }

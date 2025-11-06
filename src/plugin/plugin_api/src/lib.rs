@@ -115,3 +115,14 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         get_data: get_data::<T>,
     }
 }
+
+
+pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &str) -> bool {
+    if handle.is_null() {
+        return false;
+    }
+    let plugin = &mut *handle;
+    let c_cmd = CString::new(cmd).unwrap();
+    let c_args = CString::new(args).unwrap();
+    (plugin.do_dispatch)(plugin.ptr, c_cmd.as_ptr(), c_args.as_ptr())
+}

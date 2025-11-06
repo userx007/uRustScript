@@ -19,11 +19,5 @@ fn main() -> Result<(), Box<dyn Error>> {
     validator.validate_script(&mut items)?;
     runner.run_script(&mut items)?;
 
-    /*
-        for item in &items {
-            println!("{:?}", item);
-        }
-    */
-
     Ok(())
 }
