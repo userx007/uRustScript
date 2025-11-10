@@ -1,8 +1,10 @@
 use interfaces::{Item, TokenType};
 use plugin_api::{plugin_do_dispatch, plugin_get_data, PluginHandle};
 use plugin_manager::PluginManager;
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
+use utils::string_replacer;
 
 #[derive(Debug)]
 enum RunError {
@@ -18,11 +20,15 @@ impl fmt::Display for RunError {
 
 impl Error for RunError {}
 
-pub struct ScriptRunner;
+pub struct ScriptRunner {
+    macros: HashMap<String, String>,
+}
 
 impl ScriptRunner {
     pub fn new() -> Self {
-        ScriptRunner {}
+        ScriptRunner {
+            macros: HashMap::new(),
+        }
     }
 
     fn execute_plugin_command(
@@ -30,13 +36,13 @@ impl ScriptRunner {
         plugin_manager: &mut PluginManager,
         plugin: &str,
         command: &str,
-        args: &str,
+        args: &mut String,
     ) -> Result<Option<String>, Box<dyn Error>> {
         let descriptor = plugin_manager
             .plugins
             .get(plugin)
             .ok_or_else(|| RunError::PluginNotFound)?;
-
+            string_replacer::replace_macros(args, &self.macros);
         unsafe {
             let handle: &mut PluginHandle = &mut *descriptor.handle;
 
@@ -53,22 +59,23 @@ impl ScriptRunner {
     }
 
     pub fn run_script(
-        &self,
+        &mut self,
         items: &mut Vec<Item>,
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
-        for item in items {
+        for item in items.iter_mut() {
             match &mut item.token_type {
                 TokenType::VariableMacro {
                     plugin,
                     command,
                     args,
+                    vmacro,
                     value,
-                    ..
                 } => {
                     let result =
                         self.execute_plugin_command(plugin_manager, plugin, command, args)?;
                     *value = result.unwrap_or_default();
+                    self.macros.insert(vmacro.clone(), value.clone());
                 }
 
                 TokenType::Command {

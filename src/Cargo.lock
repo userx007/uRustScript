@@ -151,6 +151,7 @@ dependencies = [
  "interfaces",
  "plugin_api",
  "plugin_manager",
+ "utils",
 ]
 
 [[package]]

@@ -13,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let reader = ScriptReader::new();
     let mut parser = ScriptParser::new();
     let validator = ScriptValidator::new();
-    let runner = ScriptRunner::new();
+    let mut runner = ScriptRunner::new();
     let mut plugin_manager = PluginManager::new();
 
     reader.read_script("script.txt", &mut items)?;
