@@ -18,10 +18,8 @@ pub struct PluginDescriptor {
     pub _lib: Library, // underscore means “used to hold lifetime”
 }
 
-pub type LoadedPlugins = HashMap<String, PluginDescriptor>;
-
 pub struct PluginManager {
-    pub plugins: LoadedPlugins,
+    pub plugins: HashMap<String, PluginDescriptor>,
 }
 
 impl PluginManager {
@@ -32,7 +30,7 @@ impl PluginManager {
     pub fn load_plugins(&mut self, plugin_names: &HashSet<String>, plugin_dir: &str) {
 
         for name in plugin_names {
-            let lib_name = self.build_library_name(name);
+            let lib_name = format!("lib{}_plugin.so", name.to_lowercase());
             let path = Path::new(plugin_dir).join(lib_name);
             println!("Loading plugin: {:?}", path);
 
@@ -54,21 +52,16 @@ impl PluginManager {
     }
 
     pub fn unload_plugin(&mut self, name: &str) {
-        if let Some(loaded) = self.plugins.remove(name) {
-            println!("🧹 Unloading plugin: {}", name);
+        if let Some(descriptor) = self.plugins.remove(name) {
             unsafe {
-                // Reclaim Box to drop it safely
-                let boxed_handle = Box::from_raw(loaded.handle);
-
-                // Call the plugin’s destroy function
-                if !boxed_handle.ptr.is_null() {
-                    (boxed_handle.destroy)(boxed_handle.ptr);
+                if !descriptor.handle.is_null() {
+                    // Call destroy
+                    ((*descriptor.handle).destroy)((*descriptor.handle).ptr);
+                    // Drop boxed handle
+                    Box::from_raw(descriptor.handle);
                 }
-
-                // Library drops here -> automatically unloaded
             }
-        } else {
-            println!("⚠️ Tried to unload non-existent plugin: {}", name);
+            println!("🗑️ Unloaded plugin {}", name);
         }
     }
 
@@ -78,17 +71,5 @@ impl PluginManager {
             self.unload_plugin(&name);
         }
     }
-
-    pub fn get_ptr(&self, name: &str) -> Option<*mut c_void> {
-        self.plugins
-            .get(name)
-            .map(|p| unsafe { (*p.handle).ptr })
-    }
-
-    pub fn build_library_name(&self, name: &str) -> String {
-        let name = name.to_lowercase();
-        format!("lib{0}_plugin.{1}", name, LIB_EXT)
-    }
-
 }
 

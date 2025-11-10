@@ -5,7 +5,7 @@ use std::ffi::c_void;
 
 use interfaces::{Item, TokenType};
 use plugin_api::{ParamsGet, PluginHandle, PARAMS_GET_CMDS_KEY};
-use plugin_manager::{PluginDescriptor, PluginManager, LoadedPlugins};
+use plugin_manager::{PluginDescriptor, PluginManager};
 
 #[derive(Debug)]
 enum ValidateError {
@@ -82,6 +82,7 @@ impl ScriptValidator {
         plugin_commands: &mut HashMap<String, HashSet<String>>,
         plugin_manager: &mut PluginManager
     ) -> bool {
+
         for (plugin_name, PluginDescriptor { handle, _lib }) in &plugin_manager.plugins {
             let mut params: ParamsGet = Default::default();
 
@@ -129,19 +130,23 @@ impl ScriptValidator {
         true
     }
 
+    fn validate_plugins_loading(&self, plugins: &HashSet<String>, plugin_manager: &mut PluginManager) -> bool {
+        plugin_manager.load_plugins(plugins, "target/debug");
+        true
+    }
+
     pub fn validate_script(&self, items: &mut Vec<Item>, plugin_manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
         let mut used_plugins: HashSet<String> = HashSet::new();
         let mut plugin_commands: HashMap<String, HashSet<String>> = HashMap::new();
 
         println!("Validating script ...");
 
-        if false == self.validate_plugins_availability(
-                items,
-                &mut used_plugins,
-                &mut plugin_commands,
-            )
-        {
+        if false == self.validate_plugins_availability(items, &mut used_plugins, &mut plugin_commands) {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
+        }
+
+        if false == self.validate_plugins_loading(&used_plugins, plugin_manager) {
+            return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
 
         if false == self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {

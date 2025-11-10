@@ -2,7 +2,7 @@ use interfaces::{Item, TokenType};
 use std::error::Error;
 use std::fmt;
 use plugin_api::{PluginHandle, plugin_do_dispatch};
-use plugin_manager::PluginManager;
+use plugin_manager::{PluginManager, PluginDescriptor};
 
 
 #[derive(Debug)]
@@ -27,36 +27,33 @@ impl ScriptRunner {
         ScriptRunner {}
     }
 
-    pub fn run_script(&self, items: &mut Vec<Item>, plugin_manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
-        println!("Running script ...");
 
-/*
+    pub fn run_script(
+        &self,
+        items: &mut Vec<Item>,
+        plugin_manager: &mut PluginManager,
+    ) -> Result<(), Box<dyn Error>> {
         for item in items {
             match &mut item.token_type {
-                TokenType::VariableMacro { command, args, .. }
-                | TokenType::Command { command, args, .. } => {
+                TokenType::VariableMacro { plugin, command, args, .. }
+                | TokenType::Command { plugin, command, args, .. } => {
 
-                    if !pluginptr.is_null() {
+                    if let Some(descriptor) = plugin_manager.plugins.get(plugin) {
                         unsafe {
-                            // cast back to PluginHandle
-                            let plugin_handle = &mut *( *pluginptr as *mut PluginHandle );
-
-                            // convert Rust strings to C pointers
-                            let cmd_ptr = command.as_ptr() as *const i8;
-                            let args_ptr = args.as_ptr() as *const i8;
-
-                            if (plugin_handle.do_dispatch)(plugin_handle.ptr, cmd_ptr, args_ptr) {
+                            let handle: &mut PluginHandle = &mut *descriptor.handle;
+                            if plugin_do_dispatch(handle, command, args) {
                                 println!("✅ Executed {} {}", command, args);
                             } else {
-                                eprintln!("❌ Failed to execute {} {}", command, args);
+                                eprintln!("❌ Failed {} {}", command, args);
                             }
                         }
+                    } else {
+                        eprintln!("❌ Plugin not found: {}", plugin);
                     }
                 }
                 _ => {}
             }
         }
-*/
         Ok(())
     }
 }
