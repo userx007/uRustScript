@@ -7,13 +7,12 @@ use std::fmt;
 #[derive(Debug)]
 enum RunError {
     ErrorExecutingCommand,
+    PluginNotFound,
 }
 
 impl fmt::Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            RunError::ErrorExecutingCommand => write!(f, "Error executing command"),
-        }
+        write!(f, "{:?}", self)
     }
 }
 
@@ -24,6 +23,33 @@ pub struct ScriptRunner;
 impl ScriptRunner {
     pub fn new() -> Self {
         ScriptRunner {}
+    }
+
+    fn execute_plugin_command(
+        &self,
+        plugin_manager: &mut PluginManager,
+        plugin: &str,
+        command: &str,
+        args: &str,
+    ) -> Result<Option<String>, Box<dyn Error>> {
+        let descriptor = plugin_manager
+            .plugins
+            .get(plugin)
+            .ok_or_else(|| RunError::PluginNotFound)?;
+
+        unsafe {
+            let handle: &mut PluginHandle = &mut *descriptor.handle;
+
+            if plugin_do_dispatch(handle, command, args) {
+                println!("✅ Executed {} {}", command, args);
+
+                // Return output string (for VariableMacro)
+                Ok(Some(plugin_get_data(handle)))
+            } else {
+                eprintln!("❌ Failed {} {}", command, args);
+                Err(Box::new(RunError::ErrorExecutingCommand))
+            }
+        }
     }
 
     pub fn run_script(
@@ -40,20 +66,9 @@ impl ScriptRunner {
                     value,
                     ..
                 } => {
-                    if let Some(descriptor) = plugin_manager.plugins.get(plugin) {
-                        unsafe {
-                            let handle: &mut PluginHandle = &mut *descriptor.handle;
-
-                            if plugin_do_dispatch(handle, command, args) {
-                                // ✅ update the variable value from plugin output
-                                *value = plugin_get_data(handle);
-                                println!("✅ Executed variable macro {} {}", command, args);
-                            } else {
-                                eprintln!("❌ Failed {} {}", command, args);
-                                return Err(Box::new(RunError::ErrorExecutingCommand));
-                            }
-                        }
-                    }
+                    let result =
+                        self.execute_plugin_command(plugin_manager, plugin, command, args)?;
+                    *value = result.unwrap_or_default();
                 }
 
                 TokenType::Command {
@@ -62,18 +77,7 @@ impl ScriptRunner {
                     args,
                     ..
                 } => {
-                    if let Some(descriptor) = plugin_manager.plugins.get(plugin) {
-                        unsafe {
-                            let handle: &mut PluginHandle = &mut *descriptor.handle;
-
-                            if plugin_do_dispatch(handle, command, args) {
-                                println!("✅ Executed command {} {}", command, args);
-                            } else {
-                                eprintln!("❌ Failed {} {}", command, args);
-                                return Err(Box::new(RunError::ErrorExecutingCommand));
-                            }
-                        }
-                    }
+                    self.execute_plugin_command(plugin_manager, plugin, command, args)?;
                 }
 
                 _ => {}
