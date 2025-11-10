@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fmt;
+use std::ffi::c_void;
 
-use interfaces::{Item, TokenType, Validator};
-use plugin_api::{ParamsGet, PluginIdentifier, PARAMS_GET_CMDS_KEY};
-use plugin_loader::load_plugins;
+use interfaces::{Item, TokenType};
+use plugin_api::{ParamsGet, PluginHandle, PARAMS_GET_CMDS_KEY};
+use plugin_manager::{PluginDescriptor, PluginManager, LoadedPlugins};
 
 #[derive(Debug)]
 enum ValidateError {
@@ -17,7 +18,7 @@ impl fmt::Display for ValidateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ValidateError::PluginNotSetForLoading => {
-                write!(f, "Needed plugins not plugins_to_load")
+                write!(f, "Needed plugins not used_plugins")
             }
             ValidateError::PluginLoadingFailed => write!(f, "Failed to load plugin"),
             ValidateError::PluginCommandAvailability => {
@@ -65,7 +66,7 @@ impl ScriptValidator {
             }
         }
 
-        println!("plugins_to_load: {:?}", plugins);
+        println!("used_plugins: {:?}", plugins);
         println!("Used  : {:?}", used);
 
         if *plugins != used {
@@ -76,32 +77,21 @@ impl ScriptValidator {
         true
     }
 
-    fn validate_plugins_loading(
-        &self,
-        plugins: &HashSet<String>,
-        plugins_loaded: &mut PluginIdentifier,
-    ) -> bool {
-        *plugins_loaded = load_plugins(plugins, "target/debug");
-        true
-    }
-
     fn validate_plugins_commands(
         &self,
-        plugins_loaded: &PluginIdentifier,
-        plugin_used_commands: &mut HashMap<String, HashSet<String>>,
+        plugin_commands: &mut HashMap<String, HashSet<String>>,
+        plugin_manager: &mut PluginManager
     ) -> bool {
-        for (plugin_name, (plugin_handle, _)) in plugins_loaded {
+        for (plugin_name, PluginDescriptor { handle, _lib }) in &plugin_manager.plugins {
             let mut params: ParamsGet = Default::default();
 
             unsafe {
-                if plugin_handle.is_null() {
-                    eprintln!("❌ Plugin '{}' handle is null", plugin_name);
-                    return false;
-                }
+                // `plugin_handle` is a reference to a *mut c_void
+                let handle_ptr = *handle as *mut PluginHandle;
 
-                // `plugin_handle` is &*mut PluginHandle, so deref twice:
-                let plugin = &mut **plugin_handle; // &mut PluginHandle
-                (plugin.get_params)(plugin.ptr, &mut params);
+                if !handle_ptr.is_null() {
+                    ((*handle_ptr).get_params)((*handle_ptr).ptr, &mut params);
+                }
             }
 
             if let Some(plugin_supported_commands) = params.get(PARAMS_GET_CMDS_KEY) {
@@ -111,7 +101,7 @@ impl ScriptValidator {
                 );
 
                 // Find which commands are used in the script for this plugin
-                let used_for_this_plugin = plugin_used_commands
+                let used_for_this_plugin = plugin_commands
                     .get(plugin_name)
                     .cloned()
                     .unwrap_or_default();
@@ -130,80 +120,31 @@ impl ScriptValidator {
                     return false;
                 }
             } else {
-                println!(
-                    "❌ Section {:?} not found in ParamsGet",
-                    PARAMS_GET_CMDS_KEY
-                );
+                println!("❌ Section {:?} not found in ParamsGet", PARAMS_GET_CMDS_KEY);
                 return false;
             }
         }
 
-        println!("✅ Used commands supported by plugins");
+        println!("✅ Commands supported by plugins");
         true
     }
 
-    fn insert_plugin_pointers(&self, items: &mut Vec<Item>, plugins: &PluginIdentifier) -> bool {
-        for item in items {
-            if let TokenType::VariableMacro {
-                plugin, pluginptr, ..
-            }
-            | TokenType::Command {
-                plugin, pluginptr, ..
-            } = &mut item.token_type
-            {
-                if let Some((got_plugin_ptr, _)) = plugins.get(plugin) {
-                    unsafe {
-                        if got_plugin_ptr.is_null() {
-                            eprintln!("⚠️ Plugin '{}' handle is null", plugin);
-                            continue;
-                        }
-
-                        // Deref twice to get the PluginHandle structure
-                        let handle = &mut **got_plugin_ptr;
-
-                        if !handle.ptr.is_null() {
-                            *pluginptr = handle.ptr;
-                            println!("🔗 Set pluginptr for '{}' to {:?}", plugin, *pluginptr);
-                        } else {
-                            eprintln!("⚠️ Plugin '{}' internal ptr is null", plugin);
-                        }
-                    }
-                } else {
-                    eprintln!("⚠️ Plugin '{}' not found in loaded plugins", plugin);
-                }
-            }
-        }
-        true
-    }
-}
-
-impl Validator for ScriptValidator {
-    fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
-        let mut plugins_to_load: HashSet<String> = HashSet::new();
-        let mut plugins_loaded: PluginIdentifier = HashMap::new();
-        let mut plugin_used_commands: HashMap<String, HashSet<String>> = HashMap::new();
+    pub fn validate_script(&self, items: &mut Vec<Item>, plugin_manager: &mut PluginManager) -> Result<(), Box<dyn Error>> {
+        let mut used_plugins: HashSet<String> = HashSet::new();
+        let mut plugin_commands: HashMap<String, HashSet<String>> = HashMap::new();
 
         println!("Validating script ...");
 
-        if false
-            == self.validate_plugins_availability(
+        if false == self.validate_plugins_availability(
                 items,
-                &mut plugins_to_load,
-                &mut plugin_used_commands,
+                &mut used_plugins,
+                &mut plugin_commands,
             )
         {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }
 
-        if false == self.validate_plugins_loading(&plugins_to_load, &mut plugins_loaded) {
-            return Err(Box::new(ValidateError::PluginLoadingFailed));
-        }
-
-        if false == self.validate_plugins_commands(&plugins_loaded, &mut plugin_used_commands) {
-            return Err(Box::new(ValidateError::PluginCommandAvailability));
-        }
-
-        if false == self.insert_plugin_pointers(items, &plugins_loaded) {
+        if false == self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {
             return Err(Box::new(ValidateError::PluginCommandAvailability));
         }
 

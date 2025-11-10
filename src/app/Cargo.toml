@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-interfaces = { path = "../interfaces" }
-reader     = { path = "../reader" }
-parser     = { path = "../parser" }
-validator  = { path = "../validator" }
-runner     = { path = "../runner" }
+interfaces      = { path = "../interfaces" }
+reader          = { path = "../reader" }
+parser          = { path = "../parser" }
+validator       = { path = "../validator" }
+runner          = { path = "../runner" }
+plugin_manager  = { path = "../plugin/plugin_manager" }
 

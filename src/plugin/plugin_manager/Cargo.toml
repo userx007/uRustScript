@@ -1,5 +1,5 @@
 [package]
-name = "plugin_loader"
+name = "plugin_manager"
 version = "0.1.0"
 edition = "2021"
 

@@ -11,9 +11,10 @@ pub const PARAMS_GET_CMDS_KEY: &'static str = "cmds";
 // Shared type definitions
 // ---------------------------
 
-pub type PluginIdentifier = HashMap<String, (*mut PluginHandle, Library)>;
 pub type ParamsSet = HashMap<String, String>;
 pub type ParamsGet = HashMap<String, Vec<&'static str>>;
+pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
+
 
 // ---------------------------
 // Plugin trait
@@ -45,9 +46,6 @@ pub struct PluginHandle {
     pub reset_data: extern "C" fn(*mut c_void),
     pub get_data: extern "C" fn(*mut c_void) -> *const c_char,
 }
-
-pub type PluginPtr = *mut c_void;
-pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
 
 // ---------------------------
 // Generic FFI handle builder

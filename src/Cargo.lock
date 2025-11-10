@@ -17,6 +17,7 @@ version = "0.1.0"
 dependencies = [
  "interfaces",
  "parser",
+ "plugin_manager",
  "reader",
  "runner",
  "validator",
@@ -73,20 +74,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "plugin_loader"
-version = "0.1.0"
-dependencies = [
- "libloading",
- "plugin_api",
-]
-
-[[package]]
 name = "plugin_macros"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "plugin_manager"
+version = "0.1.0"
+dependencies = [
+ "libloading",
+ "plugin_api",
 ]
 
 [[package]]
@@ -149,6 +150,7 @@ version = "0.1.0"
 dependencies = [
  "interfaces",
  "plugin_api",
+ "plugin_manager",
 ]
 
 [[package]]
@@ -190,7 +192,7 @@ version = "0.1.0"
 dependencies = [
  "interfaces",
  "plugin_api",
- "plugin_loader",
+ "plugin_manager",
 ]
 
 [[package]]

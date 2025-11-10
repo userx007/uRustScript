@@ -1,7 +1,4 @@
 use std::error::Error;
-use std::ffi::c_void;
-
-pub type PluginPtr = *mut c_void;
 
 #[derive(Debug, Default)]
 pub struct Item {
@@ -28,13 +25,11 @@ pub enum TokenType {
         args: String,
         vmacro: String,
         value: String,
-        pluginptr: PluginPtr,
     },
     Command {
         plugin: String,
         command: String,
         args: String,
-        pluginptr: PluginPtr,
     },
     IfGoTo {
         condition: String,
@@ -45,22 +40,3 @@ pub enum TokenType {
     },
 }
 
-pub trait Reader {
-    fn read_script(
-        &self,
-        filepathname: &str,
-        output: &mut Vec<Item>,
-    ) -> Result<usize, Box<dyn Error>>;
-}
-
-pub trait Parser {
-    fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
-}
-
-pub trait Validator {
-    fn validate_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
-}
-
-pub trait Runner {
-    fn run_script(&self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>>;
-}

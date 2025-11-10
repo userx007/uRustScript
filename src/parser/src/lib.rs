@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
-use interfaces::{Item, Parser, TokenType};
+use interfaces::{Item, TokenType};
 use utils::string_replacer;
 
 const RE_LOAD_PLUGIN: &'static str =
@@ -102,7 +102,6 @@ impl ScriptParser {
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
             let value = "".into();
-            let pluginptr = std::ptr::null_mut();
 
             item.token_type = TokenType::VariableMacro {
                 plugin,
@@ -110,7 +109,6 @@ impl ScriptParser {
                 args,
                 vmacro,
                 value,
-                pluginptr,
             };
             return true;
         }
@@ -132,13 +130,11 @@ impl ScriptParser {
                 .get(3)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
-            let pluginptr = std::ptr::null_mut();
 
             item.token_type = TokenType::Command {
                 plugin,
                 command,
                 args,
-                pluginptr,
             };
             return true;
         }
@@ -192,10 +188,8 @@ impl ScriptParser {
         item.line = String::new();
         true
     }
-}
 
-impl Parser for ScriptParser {
-    fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
+    pub fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Parsing script ...");
         for item in items {
             string_replacer::replace_macros(&mut item.line, &self.macros);

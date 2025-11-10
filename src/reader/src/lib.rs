@@ -1,4 +1,4 @@
-use interfaces::{Item, Reader, TokenType};
+use interfaces::{Item, TokenType};
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
@@ -9,10 +9,8 @@ impl ScriptReader {
     pub fn new() -> Self {
         ScriptReader {}
     }
-}
 
-impl Reader for ScriptReader {
-    fn read_script(
+    pub fn read_script(
         &self,
         filepathname: &str,
         output: &mut Vec<Item>,
