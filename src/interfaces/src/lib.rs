@@ -1,5 +1,3 @@
-use std::error::Error;
-
 #[derive(Debug, Default)]
 pub struct Item {
     pub line: String,
@@ -39,4 +37,3 @@ pub enum TokenType {
         label: String,
     },
 }
-

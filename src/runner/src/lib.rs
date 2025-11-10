@@ -1,19 +1,18 @@
 use interfaces::{Item, TokenType};
+use plugin_api::{plugin_do_dispatch, PluginHandle};
+use plugin_manager::PluginManager;
 use std::error::Error;
 use std::fmt;
-use plugin_api::{PluginHandle, plugin_do_dispatch};
-use plugin_manager::{PluginManager, PluginDescriptor};
-
 
 #[derive(Debug)]
 enum RunError {
-    InvalidStatement,
+    ErrorExecutingCommand,
 }
 
 impl fmt::Display for RunError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            RunError::InvalidStatement => write!(f, "Invalid item in script"),
+            RunError::ErrorExecutingCommand => write!(f, "Error executing command"),
         }
     }
 }
@@ -27,7 +26,6 @@ impl ScriptRunner {
         ScriptRunner {}
     }
 
-
     pub fn run_script(
         &self,
         items: &mut Vec<Item>,
@@ -35,9 +33,18 @@ impl ScriptRunner {
     ) -> Result<(), Box<dyn Error>> {
         for item in items {
             match &mut item.token_type {
-                TokenType::VariableMacro { plugin, command, args, .. }
-                | TokenType::Command { plugin, command, args, .. } => {
-
+                TokenType::VariableMacro {
+                    plugin,
+                    command,
+                    args,
+                    ..
+                }
+                | TokenType::Command {
+                    plugin,
+                    command,
+                    args,
+                    ..
+                } => {
                     if let Some(descriptor) = plugin_manager.plugins.get(plugin) {
                         unsafe {
                             let handle: &mut PluginHandle = &mut *descriptor.handle;
@@ -45,10 +52,9 @@ impl ScriptRunner {
                                 println!("✅ Executed {} {}", command, args);
                             } else {
                                 eprintln!("❌ Failed {} {}", command, args);
+                                return Err(Box::new(RunError::ErrorExecutingCommand));
                             }
                         }
-                    } else {
-                        eprintln!("❌ Plugin not found: {}", plugin);
                     }
                 }
                 _ => {}

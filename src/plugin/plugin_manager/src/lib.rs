@@ -2,7 +2,6 @@ use libloading::{Library, Symbol};
 use plugin_api::{PluginCreateFn, PluginHandle};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use std::ffi::c_void;
 
 #[cfg(target_os = "windows")]
 const LIB_EXT: &str = "dll";
@@ -24,13 +23,14 @@ pub struct PluginManager {
 
 impl PluginManager {
     pub fn new() -> Self {
-        Self { plugins: HashMap::new() }
+        Self {
+            plugins: HashMap::new(),
+        }
     }
 
     pub fn load_plugins(&mut self, plugin_names: &HashSet<String>, plugin_dir: &str) {
-
         for name in plugin_names {
-            let lib_name = format!("lib{}_plugin.so", name.to_lowercase());
+            let lib_name = format!("lib{}_plugin.{}", name.to_lowercase(), LIB_EXT);
             let path = Path::new(plugin_dir).join(lib_name);
             println!("Loading plugin: {:?}", path);
 
@@ -45,7 +45,10 @@ impl PluginManager {
 
                 self.plugins.insert(
                     name.clone(),
-                    PluginDescriptor { handle: handle_ptr, _lib: library },
+                    PluginDescriptor {
+                        handle: handle_ptr,
+                        _lib: library,
+                    },
                 );
             }
         }
@@ -58,7 +61,7 @@ impl PluginManager {
                     // Call destroy
                     ((*descriptor.handle).destroy)((*descriptor.handle).ptr);
                     // Drop boxed handle
-                    Box::from_raw(descriptor.handle);
+                    let _ = Box::from_raw(descriptor.handle);
                 }
             }
             println!("🗑️ Unloaded plugin {}", name);
@@ -72,4 +75,3 @@ impl PluginManager {
         }
     }
 }
-

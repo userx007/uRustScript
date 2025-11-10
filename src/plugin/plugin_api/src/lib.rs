@@ -1,4 +1,3 @@
-use libloading::Library;
 use std::collections::HashMap;
 use std::ffi::{c_char, c_void, CStr, CString};
 
@@ -14,7 +13,6 @@ pub const PARAMS_GET_CMDS_KEY: &'static str = "cmds";
 pub type ParamsSet = HashMap<String, String>;
 pub type ParamsGet = HashMap<String, Vec<&'static str>>;
 pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
-
 
 // ---------------------------
 // Plugin trait
@@ -113,7 +111,6 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         get_data: get_data::<T>,
     }
 }
-
 
 pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &str) -> bool {
     if handle.is_null() {

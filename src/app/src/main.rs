@@ -2,10 +2,10 @@ use std::error::Error;
 
 use interfaces::Item;
 use parser::ScriptParser;
+use plugin_manager::PluginManager;
 use reader::ScriptReader;
 use runner::ScriptRunner;
 use validator::ScriptValidator;
-use plugin_manager::PluginManager;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut items = Vec::<Item>::new();
