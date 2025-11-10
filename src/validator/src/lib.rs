@@ -11,19 +11,12 @@ enum ValidateError {
     PluginNotSetForLoading,
     PluginLoadingFailed,
     PluginCommandAvailability,
+    JumpsLabelMismatch,
 }
 
 impl fmt::Display for ValidateError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ValidateError::PluginNotSetForLoading => {
-                write!(f, "Needed plugins not used_plugins")
-            }
-            ValidateError::PluginLoadingFailed => write!(f, "Failed to load plugin"),
-            ValidateError::PluginCommandAvailability => {
-                write!(f, "Command not supported by plugin")
-            }
-        }
+        write!(f, "{:?}", self)
     }
 }
 
@@ -140,6 +133,10 @@ impl ScriptValidator {
         true
     }
 
+    fn validate_jumps(&self, items: &Vec<Item>) -> bool {
+        true
+    }
+
     pub fn validate_script(
         &self,
         items: &mut Vec<Item>,
@@ -162,6 +159,10 @@ impl ScriptValidator {
 
         if false == self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {
             return Err(Box::new(ValidateError::PluginCommandAvailability));
+        }
+
+        if false == self.validate_jumps(items) {
+            return Err(Box::new(ValidateError::JumpsLabelMismatch));
         }
 
         Ok(())

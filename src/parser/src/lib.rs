@@ -13,7 +13,7 @@ const RE_VAR_MACRO: &'static str =
     r#"^([A-Za-z_][A-Za-z0-9_]*)\s*\?=\s*([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
 const RE_COMMAND: &'static str = r#"^([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
 const RE_IF_GOTO_OR_GOTO: &'static str = r#"^(?:IF\s+(.*?)\s+)?GOTO\s+([A-Za-z0-9_]*)\s*$"#;
-const RE_LABEL: &'static str = r#"^(LABEL\s+[A-Za-z0-9_]*$)"#;
+const RE_LABEL: &'static str = r#"^LABEL\s+([A-Za-z0-9_]*)$"#;
 
 #[derive(Debug)]
 enum ParseError {
@@ -22,9 +22,7 @@ enum ParseError {
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ParseError::InvalidStatement => write!(f, "Invalid item in script"),
-        }
+        write!(f, "{:?}", self)
     }
 }
 

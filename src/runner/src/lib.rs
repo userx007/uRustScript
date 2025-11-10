@@ -63,13 +63,31 @@ impl ScriptRunner {
         items: &mut Vec<Item>,
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
+        let mut skiplabel = String::new();
+
         for item in items.iter_mut() {
+            // Skip all tokens until we hit the right label
+            if !skiplabel.is_empty() {
+                if let TokenType::Label { label } = &item.token_type {
+                    if *label == skiplabel {
+                        println!("🔁 Found label '{}', resuming execution", label);
+                        skiplabel.clear(); // stop skipping
+                        continue;
+                    }
+                }
+                // if we're still skipping, move to the next item
+                if !skiplabel.is_empty() {
+                    continue;
+                }
+            }
+
             match &mut item.token_type {
                 TokenType::VariableMacro {
                     plugin,
                     command,
                     args,
                     vmacro,
+                    ..
                 } => {
                     let result = self
                         .execute_plugin_command(plugin_manager, plugin, command, args)?
@@ -84,6 +102,20 @@ impl ScriptRunner {
                     ..
                 } => {
                     self.execute_plugin_command(plugin_manager, plugin, command, args)?;
+                }
+
+                TokenType::IfGoTo { condition, label } => {
+                    if condition.is_empty() || condition.to_lowercase() == "true" {
+                        println!("⏩ Skipping until label '{}'", label);
+                        skiplabel = label.clone();
+                        continue;
+                    }
+                }
+
+                TokenType::Label { label } => {
+                    // normal labels are handled in the skip block above
+                    // (this will only run when not skipping)
+                    println!("🏷️ Encountered label '{}'", label);
                 }
 
                 _ => {}
