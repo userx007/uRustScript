@@ -129,7 +129,7 @@ impl ScriptValidator {
         plugins: &HashSet<String>,
         plugin_manager: &mut PluginManager,
     ) -> bool {
-        plugin_manager.load_plugins(plugins, "target/debug");
+        plugin_manager.load_plugins(plugins);
         true
     }
 

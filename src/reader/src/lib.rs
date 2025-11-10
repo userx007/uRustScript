@@ -3,20 +3,18 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-pub struct ScriptReader;
+pub struct ScriptReader {
+    scriptpathname: &'static str,
+}
 
 impl ScriptReader {
-    pub fn new() -> Self {
-        ScriptReader {}
+    pub fn new(scriptpathname: &'static str) -> Self {
+        ScriptReader { scriptpathname }
     }
 
-    pub fn read_script(
-        &self,
-        filepathname: &str,
-        output: &mut Vec<Item>,
-    ) -> Result<usize, Box<dyn Error>> {
-        println!("Reading script: {}", filepathname);
-        let file = File::open(filepathname)?;
+    pub fn read_script(&self, output: &mut Vec<Item>) -> Result<usize, Box<dyn Error>> {
+        println!("Reading script: {}", self.scriptpathname);
+        let file = File::open(&self.scriptpathname)?;
         let reader = BufReader::new(file);
 
         let mut in_block_comment = false;

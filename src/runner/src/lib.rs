@@ -4,12 +4,13 @@ use plugin_manager::PluginManager;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use utils::string_replacer;
+use utils::{ini_parser::IniParserEx, string_replacer};
 
 #[derive(Debug)]
 enum RunError {
     ErrorExecutingCommand,
     PluginNotFound,
+    IniFileNotFound,
 }
 
 impl fmt::Display for RunError {
@@ -21,12 +22,16 @@ impl fmt::Display for RunError {
 impl Error for RunError {}
 
 pub struct ScriptRunner {
+    inipathname: &'static str,
+    iniparser: IniParserEx,
     macros: HashMap<String, String>,
 }
 
 impl ScriptRunner {
-    pub fn new() -> Self {
+    pub fn new(inipathname: &'static str) -> Self {
         ScriptRunner {
+            inipathname,
+            iniparser: IniParserEx::default(),
             macros: HashMap::new(),
         }
     }
@@ -63,6 +68,10 @@ impl ScriptRunner {
         items: &mut Vec<Item>,
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
+        if false == self.iniparser.load(self.inipathname) {
+            return Err(Box::new(RunError::IniFileNotFound));
+        }
+
         let mut skiplabel = String::new();
 
         for item in items.iter_mut() {

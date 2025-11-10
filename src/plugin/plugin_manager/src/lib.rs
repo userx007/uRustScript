@@ -18,20 +18,22 @@ pub struct PluginDescriptor {
 }
 
 pub struct PluginManager {
+    pluginsdirpath: &'static str,
     pub plugins: HashMap<String, PluginDescriptor>,
 }
 
 impl PluginManager {
-    pub fn new() -> Self {
+    pub fn new(pluginsdirpath: &'static str) -> Self {
         Self {
+            pluginsdirpath,
             plugins: HashMap::new(),
         }
     }
 
-    pub fn load_plugins(&mut self, plugin_names: &HashSet<String>, plugin_dir: &str) {
+    pub fn load_plugins(&mut self, plugin_names: &HashSet<String>) {
         for name in plugin_names {
             let lib_name = format!("lib{}_plugin.{}", name.to_lowercase(), LIB_EXT);
-            let path = Path::new(plugin_dir).join(lib_name);
+            let path = Path::new(self.pluginsdirpath).join(lib_name);
             println!("Loading plugin: {:?}", path);
 
             unsafe {
