@@ -1,5 +1,5 @@
 use interfaces::{Item, TokenType};
-use plugin_api::{plugin_do_dispatch, PluginHandle};
+use plugin_api::{plugin_do_dispatch, plugin_get_data, PluginHandle};
 use plugin_manager::PluginManager;
 use std::error::Error;
 use std::fmt;
@@ -37,9 +37,26 @@ impl ScriptRunner {
                     plugin,
                     command,
                     args,
+                    value,
                     ..
+                } => {
+                    if let Some(descriptor) = plugin_manager.plugins.get(plugin) {
+                        unsafe {
+                            let handle: &mut PluginHandle = &mut *descriptor.handle;
+
+                            if plugin_do_dispatch(handle, command, args) {
+                                // ✅ update the variable value from plugin output
+                                *value = plugin_get_data(handle);
+                                println!("✅ Executed variable macro {} {}", command, args);
+                            } else {
+                                eprintln!("❌ Failed {} {}", command, args);
+                                return Err(Box::new(RunError::ErrorExecutingCommand));
+                            }
+                        }
+                    }
                 }
-                | TokenType::Command {
+
+                TokenType::Command {
                     plugin,
                     command,
                     args,
@@ -48,8 +65,9 @@ impl ScriptRunner {
                     if let Some(descriptor) = plugin_manager.plugins.get(plugin) {
                         unsafe {
                             let handle: &mut PluginHandle = &mut *descriptor.handle;
+
                             if plugin_do_dispatch(handle, command, args) {
-                                println!("✅ Executed {} {}", command, args);
+                                println!("✅ Executed command {} {}", command, args);
                             } else {
                                 eprintln!("❌ Failed {} {}", command, args);
                                 return Err(Box::new(RunError::ErrorExecutingCommand));
@@ -57,9 +75,11 @@ impl ScriptRunner {
                         }
                     }
                 }
+
                 _ => {}
             }
         }
+
         Ok(())
     }
 }

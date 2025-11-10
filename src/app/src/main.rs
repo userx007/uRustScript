@@ -21,5 +21,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     validator.validate_script(&mut items, &mut plugin_manager)?;
     runner.run_script(&mut items, &mut plugin_manager)?;
 
+    for item in items {
+        println!("{:?}", item);
+    }
+
     Ok(())
 }

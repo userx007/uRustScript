@@ -121,3 +121,15 @@ pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &st
     let c_args = CString::new(args).unwrap();
     (plugin.do_dispatch)(plugin.ptr, c_cmd.as_ptr(), c_args.as_ptr())
 }
+
+pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
+    if handle.is_null() {
+        return "".to_string();
+    }
+    let plugin = &mut *handle;
+    let c_str = (plugin.get_data)(plugin.ptr);
+    if c_str.is_null() {
+        return "".to_string();
+    }
+    CStr::from_ptr(c_str).to_string_lossy().into_owned()
+}
