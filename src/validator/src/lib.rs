@@ -134,6 +134,46 @@ impl ScriptValidator {
     }
 
     fn validate_jumps(&self, items: &Vec<Item>) -> bool {
+        let mut pending_jumps: HashMap<String, usize> = HashMap::new();
+        let mut defined_labels: HashSet<String> = HashSet::new();
+
+        for item in items.iter() {
+            match &item.token_type {
+                TokenType::IfGoTo { label, .. } => {
+                    // Increment pending jump for this label
+                    *pending_jumps.entry(label.clone()).or_insert(0) += 1;
+                }
+
+                TokenType::Label { label } => {
+                    if let Some(count) = pending_jumps.get_mut(label) {
+                        if *count > 0 {
+                            // Jump exists → label is valid
+                            *count -= 1;
+                            defined_labels.insert(label.clone());
+                        } else {
+                            // No jump pending → invalid label
+                            eprintln!("❌ Invalid label '{}' without preceding jump", label);
+                            return false;
+                        }
+                    } else {
+                        // Label appeared without any jump
+                        eprintln!("❌ Label '{}' without any jump", label);
+                        return false;
+                    }
+                }
+
+                _ => {}
+            }
+        }
+
+        // Check if any jump left without a label
+        for (label, count) in pending_jumps.iter() {
+            if *count > 0 {
+                eprintln!("❌ Jump(s) to '{}' without corresponding label", label);
+                return false;
+            }
+        }
+
         true
     }
 
@@ -147,6 +187,10 @@ impl ScriptValidator {
 
         println!("Validating script ...");
 
+        if false == self.validate_jumps(items) {
+            return Err(Box::new(ValidateError::JumpsLabelMismatch));
+        }
+
         if false
             == self.validate_plugins_availability(items, &mut used_plugins, &mut plugin_commands)
         {
@@ -159,10 +203,6 @@ impl ScriptValidator {
 
         if false == self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {
             return Err(Box::new(ValidateError::PluginCommandAvailability));
-        }
-
-        if false == self.validate_jumps(items) {
-            return Err(Box::new(ValidateError::JumpsLabelMismatch));
         }
 
         Ok(())

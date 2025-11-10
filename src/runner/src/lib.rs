@@ -70,13 +70,14 @@ impl ScriptRunner {
             if !skiplabel.is_empty() {
                 if let TokenType::Label { label } = &item.token_type {
                     if *label == skiplabel {
-                        println!("🔁 Found label '{}', resuming execution", label);
+                        println!("▶️ Found label '{}', resuming execution", label);
                         skiplabel.clear(); // stop skipping
                         continue;
                     }
                 }
                 // if we're still skipping, move to the next item
                 if !skiplabel.is_empty() {
+                    println!("🚫Skipping item: {:?}", item);
                     continue;
                 }
             }
@@ -105,6 +106,7 @@ impl ScriptRunner {
                 }
 
                 TokenType::IfGoTo { condition, label } => {
+                    string_replacer::replace_macros(condition, &self.macros);
                     if condition.is_empty() || condition.to_lowercase() == "true" {
                         println!("⏩ Skipping until label '{}'", label);
                         skiplabel = label.clone();
