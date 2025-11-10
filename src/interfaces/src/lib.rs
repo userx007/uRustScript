@@ -22,7 +22,6 @@ pub enum TokenType {
         command: String,
         args: String,
         vmacro: String,
-        value: String,
     },
     Command {
         plugin: String,

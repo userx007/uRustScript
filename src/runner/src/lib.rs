@@ -42,7 +42,7 @@ impl ScriptRunner {
             .plugins
             .get(plugin)
             .ok_or_else(|| RunError::PluginNotFound)?;
-            string_replacer::replace_macros(args, &self.macros);
+        string_replacer::replace_macros(args, &self.macros);
         unsafe {
             let handle: &mut PluginHandle = &mut *descriptor.handle;
 
@@ -70,12 +70,11 @@ impl ScriptRunner {
                     command,
                     args,
                     vmacro,
-                    value,
                 } => {
-                    let result =
-                        self.execute_plugin_command(plugin_manager, plugin, command, args)?;
-                    *value = result.unwrap_or_default();
-                    self.macros.insert(vmacro.clone(), value.clone());
+                    let result = self
+                        .execute_plugin_command(plugin_manager, plugin, command, args)?
+                        .unwrap_or_default();
+                    self.macros.insert(vmacro.clone(), result);
                 }
 
                 TokenType::Command {

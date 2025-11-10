@@ -101,14 +101,12 @@ impl ScriptParser {
                 .get(4)
                 .map(|m| m.as_str().to_string())
                 .unwrap_or_default();
-            let value = "".into();
 
             item.token_type = TokenType::VariableMacro {
                 plugin,
                 command,
                 args,
                 vmacro,
-                value,
             };
             return true;
         }
