@@ -77,3 +77,9 @@ impl PluginManager {
         }
     }
 }
+
+impl Drop for PluginManager {
+    fn drop(&mut self) {
+         self.unload_plugins();
+    }
+}
