@@ -93,6 +93,9 @@ impl PluginInterface for UtilsPlugin {
     fn get_params(&self, params: &mut ParamsGet) {
         *params = self.params_get.clone();
     }
+    fn do_enable(&mut self) {
+        self.enabled = true
+    }
     fn reset_data(&mut self) {
         self.result.clear()
     }

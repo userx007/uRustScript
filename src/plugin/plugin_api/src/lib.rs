@@ -26,6 +26,7 @@ pub trait PluginInterface {
     fn set_params(&mut self, params: &ParamsSet) -> bool;
     fn get_params(&self, params: &mut ParamsGet);
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool;
+    fn do_enable(&mut self);
     fn reset_data(&mut self);
     fn get_data(&self) -> &str;
     fn is_fault_tolerant(&self) -> bool;
@@ -45,6 +46,7 @@ pub struct PluginHandle {
     pub set_params: extern "C" fn(*mut c_void, *const ParamsSet) -> bool,
     pub get_params: extern "C" fn(*mut c_void, *mut ParamsGet),
     pub do_dispatch: extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
+    pub do_enable: extern "C" fn(*mut c_void),
     pub reset_data: extern "C" fn(*mut c_void),
     pub get_data: extern "C" fn(*mut c_void) -> *const c_char,
     pub is_fault_tolerant: extern "C" fn(*mut c_void) -> bool,
@@ -102,6 +104,10 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         plugin.do_dispatch(cmd_str, args_str)
     }
 
+    extern "C" fn do_enable<T: PluginInterface>(ptr: *mut c_void) {
+        unsafe { &mut *(ptr as *mut T) }.do_enable();
+    }
+
     extern "C" fn reset_data<T: PluginInterface>(ptr: *mut c_void) {
         unsafe { &mut *(ptr as *mut T) }.reset_data();
     }
@@ -121,6 +127,7 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         set_params: set_params::<T>,
         get_params: get_params::<T>,
         do_dispatch: do_dispatch::<T>,
+        do_enable: do_enable::<T>,
         reset_data: reset_data::<T>,
         get_data: get_data::<T>,
         is_fault_tolerant: is_fault_tolerant::<T>,
@@ -148,4 +155,13 @@ pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
         return "".to_string();
     }
     CStr::from_ptr(c_str).to_string_lossy().into_owned()
+}
+
+pub unsafe fn plugin_do_enable(handle: *mut PluginHandle) -> bool {
+    if handle.is_null() {
+        return false;
+    }
+    let plugin = &mut *handle;
+    (plugin.do_enable)(plugin.ptr);
+    true
 }
