@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 plugin_api = { path = "../plugin_api" }
+utils = { path = "../../utils" }
 libloading = "0.8"

@@ -129,8 +129,7 @@ impl ScriptValidator {
         plugins: &HashSet<String>,
         plugin_manager: &mut PluginManager,
     ) -> bool {
-        plugin_manager.load_plugins(plugins);
-        true
+        plugin_manager.load_plugins(plugins)
     }
 
     fn validate_jumps(&self, items: &Vec<Item>) -> bool {

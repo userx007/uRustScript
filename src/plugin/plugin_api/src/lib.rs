@@ -133,3 +133,4 @@ pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
     }
     CStr::from_ptr(c_str).to_string_lossy().into_owned()
 }
+

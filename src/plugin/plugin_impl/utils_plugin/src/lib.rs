@@ -10,6 +10,7 @@ pub struct UtilsPlugin {
     result: String,
     commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
     params_get: ParamsGet,
+    params_set: ParamsSet,
 }
 
 impl UtilsPlugin {
@@ -20,6 +21,7 @@ impl UtilsPlugin {
             result: String::new(),
             commands: HashMap::new(),
             params_get: HashMap::new(),
+            params_set: HashMap::new(),
         };
 
         plugin.register_commands(); // procedural macro populates commands
@@ -63,7 +65,11 @@ impl PluginInterface for UtilsPlugin {
     fn is_enabled(&self) -> bool {
         self.enabled
     }
-    fn set_params(&mut self, _params: &ParamsSet) -> bool {
+    fn set_params(&mut self, params: &ParamsSet) -> bool {
+    	println!("set_params:");
+        for (k, v) in params {
+            println!("  {} = {}", k, v);
+        }
         self.initialized = true;
         true
     }

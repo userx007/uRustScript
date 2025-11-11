@@ -1,7 +1,10 @@
-use libloading::{Library, Symbol};
-use plugin_api::{PluginCreateFn, PluginHandle};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
+use libloading::{Library, Symbol};
+
+use plugin_api::{PluginCreateFn, PluginHandle};
+use utils::ini_parser::IniParserEx;
+
 
 #[cfg(target_os = "windows")]
 const LIB_EXT: &str = "dll";
@@ -12,6 +15,8 @@ const LIB_EXT: &str = "so";
 #[cfg(target_os = "macos")]
 const LIB_EXT: &str = "dylib";
 
+const INI_SEARCH_DEPTH: usize = 5;
+
 pub struct PluginDescriptor {
     pub handle: *mut PluginHandle,
     pub _lib: Library, // underscore means “used to hold lifetime”
@@ -19,18 +24,27 @@ pub struct PluginDescriptor {
 
 pub struct PluginManager {
     pluginsdirpath: &'static str,
+    inipathname: &'static str,
+    iniparser: IniParserEx,
     pub plugins: HashMap<String, PluginDescriptor>,
 }
 
 impl PluginManager {
-    pub fn new(pluginsdirpath: &'static str) -> Self {
+    pub fn new(pluginsdirpath: &'static str, inipathname: &'static str) -> Self {
         Self {
             pluginsdirpath,
+            inipathname,
+            iniparser: IniParserEx::default(),
             plugins: HashMap::new(),
         }
     }
 
-    pub fn load_plugins(&mut self, plugin_names: &HashSet<String>) {
+    pub fn load_plugins(&mut self, plugin_names: &HashSet<String>) -> bool {
+        if false == self.iniparser.load(self.inipathname) {
+            println!("❌ Failed loading inifile from {:?}", self.inipathname);
+            return false;
+        }
+
         for name in plugin_names {
             let lib_name = format!("lib{}_plugin.{}", name.to_lowercase(), LIB_EXT);
             let path = Path::new(self.pluginsdirpath).join(lib_name);
@@ -40,6 +54,15 @@ impl PluginManager {
                 let library = Library::new(&path).unwrap();
                 let create: Symbol<PluginCreateFn> = library.get(b"plugin_create").unwrap();
                 let handle = create(); // type PluginHandle
+
+                // retrieve data from inifile and send to it to plugin
+                if let Some(section) = self.iniparser.get_resolved_section(name, INI_SEARCH_DEPTH) {
+                    //println!("Resolved {} section:", name);
+                    //for (k, v) in &section {
+                    //    println!("  {} = {}", k, v);
+                    //}
+                    (handle.set_params)(handle.ptr, &section);
+                }
 
                 // Box it and store as raw pointer
                 let boxed_handle = Box::new(handle);
@@ -54,6 +77,7 @@ impl PluginManager {
                 );
             }
         }
+        true
     }
 
     pub fn unload_plugin(&mut self, name: &str) {
