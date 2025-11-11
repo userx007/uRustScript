@@ -31,7 +31,7 @@ impl ScriptRunner {
         }
     }
 
-    fn execute_plugin_command(
+    fn execute_plugin_command_real_mode(
         &self,
         plugin_manager: &mut PluginManager,
         plugin: &str,
@@ -58,7 +58,7 @@ impl ScriptRunner {
         }
     }
 
-    fn dry_execute_plugin_command(
+    fn execute_plugin_command_dry_mode(
         &self,
         plugin_manager: &mut PluginManager,
         plugin: &str,
@@ -82,11 +82,12 @@ impl ScriptRunner {
         }
     }
 
-    pub fn dry_run_script(
-        &self,
+    fn run_script_dry_mode(
+        &mut self,
         items: &mut Vec<Item>,
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
+        println!("---> Executing for parameter validation");
         for item in items {
             match &item.token_type {
                 TokenType::VariableMacro {
@@ -101,7 +102,7 @@ impl ScriptRunner {
                     args,
                     ..
                 } => {
-                    self.dry_execute_plugin_command(plugin_manager, plugin, command, args)?;
+                    self.execute_plugin_command_dry_mode(plugin_manager, plugin, command, args)?;
                 }
                 _ => {}
             }
@@ -109,11 +110,12 @@ impl ScriptRunner {
         Ok(())
     }
 
-    pub fn run_script(
+    fn run_script_full_mode(
         &mut self,
         items: &mut Vec<Item>,
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
+        println!("---> Executing in real mode");
         let mut skiplabel = String::new();
 
         for item in items.iter_mut() {
@@ -142,7 +144,7 @@ impl ScriptRunner {
                     ..
                 } => {
                     let result = self
-                        .execute_plugin_command(plugin_manager, plugin, command, args)?
+                        .execute_plugin_command_real_mode(plugin_manager, plugin, command, args)?
                         .unwrap_or_default();
                     self.macros.insert(vmacro.clone(), result);
                 }
@@ -153,7 +155,7 @@ impl ScriptRunner {
                     args,
                     ..
                 } => {
-                    self.execute_plugin_command(plugin_manager, plugin, command, args)?;
+                    self.execute_plugin_command_real_mode(plugin_manager, plugin, command, args)?;
                 }
 
                 TokenType::IfGoTo { condition, label } => {
@@ -174,7 +176,18 @@ impl ScriptRunner {
                 _ => {}
             }
         }
-
         Ok(())
     }
+
+    pub fn run_script(
+        &mut self,
+        items: &mut Vec<Item>,
+        plugin_manager: &mut PluginManager,
+    ) -> Result<(), Box<dyn Error>> {
+        self.run_script_dry_mode(items, plugin_manager)?;
+        plugin_manager.enable_plugins();
+        self.run_script_full_mode(items, plugin_manager)?;
+        Ok(())
+    }
+
 }

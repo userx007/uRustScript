@@ -44,7 +44,12 @@ impl MathPlugin {
 #[plugin_commands]
 impl MathPlugin {
     fn MECHO(&mut self, args: &str) -> bool {
-        println!("Called MECHO with args: {}", args);
+        if false == self.is_enabled() {
+            println!("NOT_ENABLED::Called MECHO with args: {}", args);
+        } else {
+            println!("ENABLED::Called MECHO with args: {}", args);
+        }
+
         self.result = args.to_string();
         true
     }

@@ -44,7 +44,12 @@ impl UtilsPlugin {
 #[plugin_commands]
 impl UtilsPlugin {
     fn UECHO(&mut self, args: &str) -> bool {
-        println!("Called ECHO with args: {}", args);
+        if false == self.is_enabled() {
+            println!("NOT_ENABLED::Called UECHO with args: {}", args);
+        } else {
+            println!("ENABLED::Called UECHO with args: {}", args);
+        }
+
         self.result = args.to_string();
         true
     }

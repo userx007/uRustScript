@@ -2,7 +2,7 @@ use libloading::{Library, Symbol};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use plugin_api::{PluginCreateFn, PluginHandle};
+use plugin_api::{PluginCreateFn, PluginHandle, plugin_do_enable};
 use utils::ini_parser::IniParserEx;
 
 #[cfg(target_os = "windows")]
@@ -77,7 +77,20 @@ impl PluginManager {
         true
     }
 
-    pub fn unload_plugin(&mut self, name: &str) {
+    pub fn enable_plugins(&mut self) -> bool {
+        println!("Enabling plugins");
+        for (_, descriptor) in &self.plugins {
+            unsafe {
+                let handle: &mut PluginHandle = &mut *descriptor.handle;
+                if false == plugin_do_enable(handle) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
+
+    fn unload_plugin(&mut self, name: &str) {
         if let Some(descriptor) = self.plugins.remove(name) {
             unsafe {
                 if !descriptor.handle.is_null() {
@@ -91,7 +104,7 @@ impl PluginManager {
         }
     }
 
-    pub fn unload_plugins(&mut self) {
+    fn unload_plugins(&mut self) {
         let plugin_names: Vec<String> = self.plugins.keys().cloned().collect();
         for name in plugin_names {
             self.unload_plugin(&name);
