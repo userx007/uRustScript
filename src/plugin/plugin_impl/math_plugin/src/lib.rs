@@ -7,6 +7,8 @@ use std::collections::HashMap;
 pub struct MathPlugin {
     initialized: bool,
     enabled: bool,
+    privileged: bool,
+    fault_tolerant: bool,
     result: String,
     commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
     params_get: ParamsGet,
@@ -18,6 +20,8 @@ impl MathPlugin {
         let mut plugin = Self {
             initialized: false,
             enabled: false,
+            privileged: false,
+            fault_tolerant: false,
             result: String::new(),
             commands: HashMap::new(),
             params_get: HashMap::new(),
@@ -66,7 +70,7 @@ impl PluginInterface for MathPlugin {
         self.enabled
     }
     fn set_params(&mut self, params: &ParamsSet) -> bool {
-    	println!("set_params:");
+        println!("set_params:");
         for (k, v) in params {
             println!("  {} = {}", k, v);
         }
@@ -82,7 +86,6 @@ impl PluginInterface for MathPlugin {
     fn get_data(&self) -> &str {
         &self.result
     }
-
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
         // avoid mutable/immutable borrow conflict
         if let Some(f) = self.commands.remove(cmd) {
@@ -92,6 +95,12 @@ impl PluginInterface for MathPlugin {
         } else {
             false
         }
+    }
+    fn is_fault_tolerant(&self) -> bool {
+        self.fault_tolerant
+    }
+    fn is_privileged(&self) -> bool {
+        self.privileged
     }
 }
 

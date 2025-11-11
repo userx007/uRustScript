@@ -26,6 +26,8 @@ pub trait PluginInterface {
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool;
     fn reset_data(&mut self);
     fn get_data(&self) -> &str;
+    fn is_fault_tolerant(&self) -> bool;
+    fn is_privileged(&self) -> bool;
 }
 
 // ---------------------------
@@ -43,6 +45,8 @@ pub struct PluginHandle {
     pub do_dispatch: extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
     pub reset_data: extern "C" fn(*mut c_void),
     pub get_data: extern "C" fn(*mut c_void) -> *const c_char,
+    pub is_fault_tolerant: extern "C" fn(*mut c_void) -> bool,
+    pub is_privileged: extern "C" fn(*mut c_void) -> bool,
 }
 
 // ---------------------------
@@ -64,6 +68,14 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
 
     extern "C" fn is_enabled<T: PluginInterface>(ptr: *mut c_void) -> bool {
         unsafe { &*(ptr as *mut T) }.is_enabled()
+    }
+
+    extern "C" fn is_privileged<T: PluginInterface>(ptr: *mut c_void) -> bool {
+        unsafe { &*(ptr as *mut T) }.is_privileged()
+    }
+
+    extern "C" fn is_fault_tolerant<T: PluginInterface>(ptr: *mut c_void) -> bool {
+        unsafe { &*(ptr as *mut T) }.is_fault_tolerant()
     }
 
     extern "C" fn set_params<T: PluginInterface>(
@@ -109,6 +121,8 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         do_dispatch: do_dispatch::<T>,
         reset_data: reset_data::<T>,
         get_data: get_data::<T>,
+        is_fault_tolerant: is_fault_tolerant::<T>,
+        is_privileged: is_privileged::<T>,
     }
 }
 
@@ -133,4 +147,3 @@ pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
     }
     CStr::from_ptr(c_str).to_string_lossy().into_owned()
 }
-

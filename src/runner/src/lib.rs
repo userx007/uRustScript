@@ -63,7 +63,6 @@ impl ScriptRunner {
         items: &mut Vec<Item>,
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
-
         let mut skiplabel = String::new();
 
         for item in items.iter_mut() {

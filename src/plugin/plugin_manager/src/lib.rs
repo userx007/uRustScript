@@ -1,10 +1,9 @@
+use libloading::{Library, Symbol};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
-use libloading::{Library, Symbol};
 
 use plugin_api::{PluginCreateFn, PluginHandle};
 use utils::ini_parser::IniParserEx;
-
 
 #[cfg(target_os = "windows")]
 const LIB_EXT: &str = "dll";
@@ -104,6 +103,6 @@ impl PluginManager {
 
 impl Drop for PluginManager {
     fn drop(&mut self) {
-         self.unload_plugins();
+        self.unload_plugins();
     }
 }
