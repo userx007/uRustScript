@@ -4,7 +4,7 @@ use plugin_manager::PluginManager;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-use utils::string_replacer;
+use utils::string_utils;
 
 #[derive(Debug)]
 enum RunError {
@@ -42,7 +42,7 @@ impl ScriptRunner {
             .plugins
             .get(plugin)
             .ok_or_else(|| RunError::PluginNotFound)?;
-        string_replacer::replace_macros(args, &self.macros);
+        string_utils::replace_macros(args, &self.macros);
         unsafe {
             let handle: &mut PluginHandle = &mut *descriptor.handle;
 
@@ -106,7 +106,7 @@ impl ScriptRunner {
                 }
 
                 TokenType::IfGoTo { condition, label } => {
-                    string_replacer::replace_macros(condition, &self.macros);
+                    string_utils::replace_macros(condition, &self.macros);
                     if condition.is_empty() || condition.to_lowercase() == "true" {
                         println!("⏩ Skipping until label '{}'", label);
                         skiplabel = label.clone();

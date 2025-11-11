@@ -38,3 +38,16 @@ pub fn replace_macros(line: &mut String, map: &HashMap<String, String>) -> bool 
         false
     }
 }
+
+pub fn string_to_bool(input: &str, out: &mut bool) -> bool {
+    let s = input.trim();
+    if s.eq_ignore_ascii_case("true") {
+        *out = true;
+        true
+    } else if s.eq_ignore_ascii_case("false") {
+        *out = false;
+        true
+    } else {
+        false
+    }
+}

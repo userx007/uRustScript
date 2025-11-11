@@ -1,2 +1,2 @@
 pub mod ini_parser;
-pub mod string_replacer;
+pub mod string_utils;

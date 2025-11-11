@@ -1,8 +1,10 @@
 use plugin_api::{
-    make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_GET_CMDS_KEY,
+    make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_FAULT_TOLERANT,
+    PARAMS_GET_CMDS_KEY, PARAMS_PRIVILEGED,
 };
 use plugin_macros::plugin_commands;
 use std::collections::HashMap;
+use utils::string_utils;
 
 pub struct MathPlugin {
     initialized: bool,
@@ -70,9 +72,20 @@ impl PluginInterface for MathPlugin {
         self.enabled
     }
     fn set_params(&mut self, params: &ParamsSet) -> bool {
-        println!("set_params:");
-        for (k, v) in params {
-            println!("  {} = {}", k, v);
+        if let Some(fault_tolerant) = params.get(PARAMS_FAULT_TOLERANT) {
+            if false == string_utils::string_to_bool(fault_tolerant, &mut self.fault_tolerant) {
+                println!(
+                    "Invalid value for: {} -> {}",
+                    PARAMS_FAULT_TOLERANT, fault_tolerant
+                );
+                return false;
+            }
+        }
+        if let Some(privileged) = params.get(PARAMS_PRIVILEGED) {
+            if false == string_utils::string_to_bool(privileged, &mut self.privileged) {
+                println!("Invalid value for: {} -> {}", PARAMS_PRIVILEGED, privileged);
+                return false;
+            }
         }
         self.initialized = true;
         true

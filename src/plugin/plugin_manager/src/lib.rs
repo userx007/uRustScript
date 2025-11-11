@@ -56,11 +56,9 @@ impl PluginManager {
 
                 // retrieve data from inifile and send to it to plugin
                 if let Some(section) = self.iniparser.get_resolved_section(name, INI_SEARCH_DEPTH) {
-                    //println!("Resolved {} section:", name);
-                    //for (k, v) in &section {
-                    //    println!("  {} = {}", k, v);
-                    //}
-                    (handle.set_params)(handle.ptr, &section);
+                    if false == (handle.set_params)(handle.ptr, &section) {
+                        return false;
+                    }
                 }
 
                 // Box it and store as raw pointer

@@ -4,7 +4,7 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType};
-use utils::string_replacer;
+use utils::string_utils;
 
 const RE_LOAD_PLUGIN: &'static str =
     r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
@@ -188,7 +188,7 @@ impl ScriptParser {
     pub fn parse_script(&mut self, items: &mut Vec<Item>) -> Result<(), Box<dyn Error>> {
         println!("Parsing script ...");
         for item in items {
-            string_replacer::replace_macros(&mut item.line, &self.macros);
+            string_utils::replace_macros(&mut item.line, &self.macros);
             if !self.parse_item(item) {
                 return Err(Box::new(ParseError::InvalidStatement));
             }

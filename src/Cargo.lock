@@ -49,6 +49,7 @@ version = "0.1.0"
 dependencies = [
  "plugin_api",
  "plugin_macros",
+ "utils",
 ]
 
 [[package]]
@@ -186,6 +187,7 @@ version = "0.1.0"
 dependencies = [
  "plugin_api",
  "plugin_macros",
+ "utils",
 ]
 
 [[package]]
