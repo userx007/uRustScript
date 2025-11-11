@@ -58,6 +58,57 @@ impl ScriptRunner {
         }
     }
 
+    fn dry_execute_plugin_command(
+        &self,
+        plugin_manager: &mut PluginManager,
+        plugin: &str,
+        command: &str,
+        args: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        let descriptor = plugin_manager
+            .plugins
+            .get(plugin)
+            .ok_or_else(|| RunError::PluginNotFound)?;
+        unsafe {
+            let handle: &mut PluginHandle = &mut *descriptor.handle;
+
+            if plugin_do_dispatch(handle, command, args) {
+                println!("✅ Executed {} {}", command, args);
+                Ok(())
+            } else {
+                eprintln!("❌ Failed {} {}", command, args);
+                Err(Box::new(RunError::ErrorExecutingCommand))
+            }
+        }
+    }
+
+    pub fn dry_run_script(
+        &self,
+        items: &mut Vec<Item>,
+        plugin_manager: &mut PluginManager,
+    ) -> Result<(), Box<dyn Error>> {
+        for item in items {
+            match &item.token_type {
+                TokenType::VariableMacro {
+                    plugin,
+                    command,
+                    args,
+                    ..
+                }
+                | TokenType::Command {
+                    plugin,
+                    command,
+                    args,
+                    ..
+                } => {
+                    self.dry_execute_plugin_command(plugin_manager, plugin, command, args)?;
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
     pub fn run_script(
         &mut self,
         items: &mut Vec<Item>,
