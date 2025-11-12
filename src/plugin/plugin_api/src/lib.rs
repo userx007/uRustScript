@@ -139,17 +139,22 @@ pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &st
     if handle.is_null() {
         return false;
     }
-    let plugin = &mut *handle;
-    let c_cmd = CString::new(cmd).unwrap();
-    let c_args = CString::new(args).unwrap();
-    (plugin.do_dispatch)(plugin.ptr, c_cmd.as_ptr(), c_args.as_ptr())
+    let plugin = &*handle;
+    let c_cmd = CString::new(cmd).expect("invalid cmd");
+    let c_args = CString::new(args).expect("invalid args");
+
+    let success = (plugin.do_dispatch)(plugin.ptr, c_cmd.as_ptr(), c_args.as_ptr());
+    let is_fault_tolerant = (plugin.is_fault_tolerant)(plugin.ptr);
+
+    success || is_fault_tolerant
 }
+
 
 pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
     if handle.is_null() {
         return "".to_string();
     }
-    let plugin = &mut *handle;
+    let plugin = &*handle;
     let c_str = (plugin.get_data)(plugin.ptr);
     if c_str.is_null() {
         return "".to_string();
@@ -161,7 +166,7 @@ pub unsafe fn plugin_do_enable(handle: *mut PluginHandle) -> bool {
     if handle.is_null() {
         return false;
     }
-    let plugin = &mut *handle;
+    let plugin = &*handle;
     (plugin.do_enable)(plugin.ptr);
     true
 }
