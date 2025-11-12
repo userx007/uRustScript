@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType};
-use plugin_api::{ParamsGet, PluginHandle, PARAMS_GET_CMDS_KEY};
+use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY};
 use plugin_manager::{PluginDescriptor, PluginManager};
 
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl ScriptValidator {
                     used.insert(plugin.to_string());
                     plugin_commands
                         .entry(plugin.to_string())
-                        .or_insert_with(HashSet::new)
+                        .or_default()
                         .insert(command.to_string());
                 }
                 _ => {}
@@ -62,7 +62,7 @@ impl ScriptValidator {
         println!("Used  : {:?}", used);
 
         if *plugins != used {
-            let missing: HashSet<_> = used.difference(&plugins).cloned().collect();
+            let missing: HashSet<_> = used.difference(plugins).cloned().collect();
             println!("Missing  : {:?}", missing);
             return false;
         }
@@ -79,8 +79,8 @@ impl ScriptValidator {
 
             unsafe {
                 // `plugin_handle` is a reference to a *mut c_void
-                let handle_ptr = *handle as *mut PluginHandle;
-
+                //let handle_ptr = *handle as *mut PluginHandle;
+                let handle_ptr = *handle;
                 if !handle_ptr.is_null() {
                     ((*handle_ptr).get_params)((*handle_ptr).ptr, &mut params);
                 }
@@ -132,7 +132,7 @@ impl ScriptValidator {
         plugin_manager.load_plugins(plugins)
     }
 
-    fn validate_jumps(&self, items: &Vec<Item>) -> bool {
+    fn validate_jumps(&self, items: &[Item]) -> bool {
         let mut pending_jumps: HashMap<String, usize> = HashMap::new();
         let mut defined_labels: HashSet<String> = HashSet::new();
 
@@ -190,8 +190,7 @@ impl ScriptValidator {
             return Err(Box::new(ValidateError::JumpsLabelMismatch));
         }
 
-        if false
-            == self.validate_plugins_availability(items, &mut used_plugins, &mut plugin_commands)
+        if !self.validate_plugins_availability(items, &mut used_plugins, &mut plugin_commands)
         {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }

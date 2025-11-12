@@ -19,30 +19,25 @@ impl IniParserEx {
         let reader = BufReader::new(file);
         let mut current_section = String::new();
 
-        for line_result in reader.lines() {
-            if let Ok(mut line) = line_result {
-                line = Self::trim(&line);
-
-                // Skip empty lines and comments
-                if line.is_empty() || line.starts_with(';') || line.starts_with('#') {
-                    continue;
-                }
-
-                // Section header: [Section]
-                if line.starts_with('[') && line.ends_with(']') {
-                    current_section = line[1..line.len() - 1].to_string();
-                    continue;
-                }
-
-                // Key=Value pair
-                if let Some(pos) = line.find('=') {
-                    let key = Self::trim(&line[..pos]);
-                    let value = Self::trim(&line[pos + 1..]);
-                    self.ini_data
-                        .entry(current_section.clone())
-                        .or_default()
-                        .insert(key, value);
-                }
+        for mut line in reader.lines().flatten() {
+            line = Self::trim(&line);
+            // Skip empty lines and comments
+            if line.is_empty() || line.starts_with(';') || line.starts_with('#') {
+                continue;
+            }
+            // Section header: [Section]
+            if line.starts_with('[') && line.ends_with(']') {
+                current_section = line[1..line.len() - 1].to_string();
+                continue;
+            }
+            // Key=Value pair
+            if let Some(pos) = line.find('=') {
+                let key = Self::trim(&line[..pos]);
+                let value = Self::trim(&line[pos + 1..]);
+                self.ini_data
+                    .entry(current_section.clone())
+                    .or_default()
+                    .insert(key, value);
             }
         }
         true
@@ -90,7 +85,7 @@ impl IniParserEx {
     ) -> Option<HashMap<String, String>> {
         let mut result = HashMap::new();
         if let Some(section_map) = self.ini_data.get(section) {
-            for (key, _) in section_map {
+            for key in section_map.keys() {
                 let resolved = self.get_value(section, key, "", depth);
                 result.insert(key.clone(), resolved);
             }

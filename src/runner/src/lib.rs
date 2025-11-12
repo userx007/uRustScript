@@ -112,7 +112,7 @@ impl ScriptRunner {
 
     fn run_script_full_mode(
         &mut self,
-        items: &mut Vec<Item>,
+        items: &mut [Item],
         plugin_manager: &mut PluginManager,
     ) -> Result<(), Box<dyn Error>> {
         println!("---> Executing in real mode");
