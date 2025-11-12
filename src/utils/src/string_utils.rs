@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::collections::HashMap;
+use std::cmp::Ordering;
 
 pub fn replace_macros(line: &mut String, map: &HashMap<String, String>) -> bool {
     if !line.contains('$') || map.is_empty() {
@@ -50,5 +51,43 @@ pub fn string_to_bool(input: &str, out: &mut bool) -> bool {
         true
     } else {
         false
+    }
+}
+
+
+/// Compare two version strings (`"1.2.3"`, `"2.0"`, etc.) using a rule like `<`, `<=`, `==`, `>`, `>=`, or `!=`.
+pub fn compare_versions(v1: &str, rule: &str, v2: &str) -> bool {
+    // Parse versions into vectors of numbers (non-numeric parts treated as 0)
+    let parse = |v: &str| -> Vec<u64> {
+        v.split('.')
+            .map(|s| s.parse::<u64>().unwrap_or(0))
+            .collect()
+    };
+
+    let a = parse(v1);
+    let b = parse(v2);
+
+    // Compare element by element
+    let mut ord = Ordering::Equal;
+    let len = a.len().max(b.len());
+
+    for i in 0..len {
+        let x = *a.get(i).unwrap_or(&0);
+        let y = *b.get(i).unwrap_or(&0);
+        ord = x.cmp(&y);
+        if ord != Ordering::Equal {
+            break;
+        }
+    }
+
+    // Apply the comparison rule
+    match rule {
+        "<"  => ord == Ordering::Less,
+        "<=" => ord != Ordering::Greater,
+        "==" => ord == Ordering::Equal,
+        "!=" => ord != Ordering::Equal,
+        ">"  => ord == Ordering::Greater,
+        ">=" => ord != Ordering::Less,
+        _ => panic!("Invalid comparison operator: {}", rule),
     }
 }
