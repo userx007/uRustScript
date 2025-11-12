@@ -1,11 +1,12 @@
 use plugin_api::{
     make_handle, ParamsGet, ParamsSet, PluginHandle, PluginInterface, PARAMS_FAULT_TOLERANT,
-    PARAMS_GET_CMDS_KEY, PARAMS_PRIVILEGED,
+    PARAMS_GET_CMDS_KEY, PARAMS_GET_VERS_KEY, PARAMS_PRIVILEGED,
 };
 use plugin_macros::plugin_commands;
 use std::collections::HashMap;
 use utils::string_utils;
 
+const PLUGIN_VERS: &str = "1.0.0.0";
 type CommandFn<T> = Box<dyn Fn(&mut T, &str) -> bool>;
 
 pub struct MathPlugin {
@@ -33,9 +34,10 @@ impl MathPlugin {
         };
 
         plugin.register_commands(); // procedural macro populates commands
-        plugin
-            .params_get
-            .insert(PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names());
+        plugin.params_get.extend([
+            (PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names()),
+            (PARAMS_GET_VERS_KEY.to_string(), vec![PLUGIN_VERS]),
+        ]);
         plugin
     }
 }

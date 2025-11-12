@@ -3,14 +3,16 @@ use std::error::Error;
 use std::fmt;
 
 use interfaces::{Item, TokenType};
-use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY};
+use plugin_api::{ParamsGet, PARAMS_GET_CMDS_KEY, PARAMS_GET_VERS_KEY};
 use plugin_manager::{PluginDescriptor, PluginManager};
+use utils::string_utils;
 
 #[derive(Debug)]
 enum ValidateError {
     PluginNotSetForLoading,
     PluginLoadingFailed,
     PluginCommandAvailability,
+    PluginVersionIncompatible,
     JumpsLabelMismatch,
 }
 
@@ -58,12 +60,12 @@ impl ScriptValidator {
             }
         }
 
-        println!("used_plugins: {:?}", plugins);
-        println!("Used  : {:?}", used);
+        println!(" Loaded plugins: {:?}", plugins);
+        println!("   Used plugins: {:?}", used);
 
         if *plugins != used {
             let missing: HashSet<_> = used.difference(plugins).cloned().collect();
-            println!("Missing  : {:?}", missing);
+            println!("Missing plugins: {:?}", missing);
             return false;
         }
         true
@@ -78,9 +80,8 @@ impl ScriptValidator {
             let mut params: ParamsGet = Default::default();
 
             unsafe {
-
                 // *handle ==> *mut PluginHandle
-                // (*handle).as_mut() =>  Option<&mut PluginHandle> see impl<T> *mut T {pub fn as_mut(&mut self) -> Option<&mut T>;}
+                // (*handle).as_mut() =>  Option<&mut PluginHandle>, see: impl<T> *mut T {pub fn as_mut(&mut self) -> Option<&mut T>;}
                 // Some(handle) => handle : &mut PluginHandle
 
                 if let Some(handle) = (*handle).as_mut() {
@@ -178,6 +179,40 @@ impl ScriptValidator {
         true
     }
 
+    fn validate_plugins_version(&self, items: &[Item], plugin_manager: &mut PluginManager) -> bool {
+        for item in items {
+            if let TokenType::LoadPlugin { plugin, rule, vers } = &item.token_type {
+                if rule.is_empty() || vers.is_empty() {
+                    continue;
+                }
+
+                let Some(descriptor) = plugin_manager.plugins.get(plugin) else {
+                    continue;
+                };
+
+                let mut params = ParamsGet::default();
+                if let Some(handle) = unsafe { descriptor.handle.as_mut() } {
+                    unsafe {
+                        (handle.get_params)(handle.ptr, &mut params);
+                    }
+                }
+
+                if let Some(version) = params.get(PARAMS_GET_VERS_KEY) {
+                    let plugin_reported_version = version[0];
+                    if !string_utils::compare_versions(plugin_reported_version, rule, vers) {
+                        println!(
+                            "❌ Plugin `{}` version mismatch: reported {} (expected {} {})",
+                            plugin, plugin_reported_version, rule, vers
+                        );
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
+    }
+
     pub fn validate_script(
         &self,
         items: &mut Vec<Item>,
@@ -198,6 +233,10 @@ impl ScriptValidator {
 
         if !self.validate_plugins_loading(&used_plugins, plugin_manager) {
             return Err(Box::new(ValidateError::PluginLoadingFailed));
+        }
+
+        if !self.validate_plugins_version(items, plugin_manager) {
+            return Err(Box::new(ValidateError::PluginVersionIncompatible));
         }
 
         if !self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {

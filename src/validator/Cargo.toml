@@ -7,3 +7,4 @@ edition = "2021"
 interfaces = { path = "../interfaces" }
 plugin_api = { path = "../plugin/plugin_api" }
 plugin_manager = { path = "../plugin/plugin_manager" }
+utils = { path = "../utils" }

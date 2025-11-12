@@ -5,13 +5,13 @@ use std::ffi::{c_char, c_void, CStr, CString};
 // Shared constants
 // ---------------------------
 pub const PARAMS_GET_CMDS_KEY: &str = "cmds";
+pub const PARAMS_GET_VERS_KEY: &str = "vers";
 pub const PARAMS_FAULT_TOLERANT: &str = "FAULT_TOLERANT";
 pub const PARAMS_PRIVILEGED: &str = "PRIVILEGED";
 
 // ---------------------------
 // Shared type definitions
 // ---------------------------
-
 pub type ParamsSet = HashMap<String, String>;
 pub type ParamsGet = HashMap<String, Vec<&'static str>>;
 pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
@@ -19,7 +19,6 @@ pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
 // ---------------------------
 // Plugin trait
 // ---------------------------
-
 pub trait PluginInterface {
     fn is_initialized(&self) -> bool;
     fn is_enabled(&self) -> bool;
@@ -36,91 +35,101 @@ pub trait PluginInterface {
 // ---------------------------
 // FFI-compatible handle
 // ---------------------------
-
 #[repr(C)]
 pub struct PluginHandle {
     pub ptr: *mut c_void,
-    pub destroy: extern "C" fn(*mut c_void),
-    pub is_initialized: extern "C" fn(*mut c_void) -> bool,
-    pub is_enabled: extern "C" fn(*mut c_void) -> bool,
-    pub set_params: extern "C" fn(*mut c_void, *const ParamsSet) -> bool,
-    pub get_params: extern "C" fn(*mut c_void, *mut ParamsGet),
-    pub do_dispatch: extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
-    pub do_enable: extern "C" fn(*mut c_void),
-    pub reset_data: extern "C" fn(*mut c_void),
-    pub get_data: extern "C" fn(*mut c_void) -> *const c_char,
-    pub is_fault_tolerant: extern "C" fn(*mut c_void) -> bool,
-    pub is_privileged: extern "C" fn(*mut c_void) -> bool,
+    pub destroy: unsafe extern "C" fn(*mut c_void),
+    pub is_initialized: unsafe extern "C" fn(*mut c_void) -> bool,
+    pub is_enabled: unsafe extern "C" fn(*mut c_void) -> bool,
+    pub set_params: unsafe extern "C" fn(*mut c_void, *const ParamsSet) -> bool,
+    pub get_params: unsafe extern "C" fn(*mut c_void, *mut ParamsGet),
+    pub do_dispatch: unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
+    pub do_enable: unsafe extern "C" fn(*mut c_void),
+    pub reset_data: unsafe extern "C" fn(*mut c_void),
+    pub get_data: unsafe extern "C" fn(*mut c_void) -> *const c_char,
+    pub is_fault_tolerant: unsafe extern "C" fn(*mut c_void) -> bool,
+    pub is_privileged: unsafe extern "C" fn(*mut c_void) -> bool,
 }
 
 // ---------------------------
 // Generic FFI handle builder
 // ---------------------------
-
 pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
-    extern "C" fn destroy<T: PluginInterface>(ptr: *mut c_void) {
+    // --- Generic FFI glue ---
+    unsafe extern "C" fn destroy<T: PluginInterface>(ptr: *mut c_void) {
         if !ptr.is_null() {
-            unsafe {
-                drop(Box::from_raw(ptr as *mut T));
-            }
+            drop(Box::from_raw(ptr.cast::<T>()));
         }
     }
 
-    extern "C" fn is_initialized<T: PluginInterface>(ptr: *mut c_void) -> bool {
-        unsafe { &*(ptr as *mut T) }.is_initialized()
+    unsafe extern "C" fn is_initialized<T: PluginInterface>(ptr: *mut c_void) -> bool {
+        debug_assert!(!ptr.is_null());
+        (&*ptr.cast::<T>()).is_initialized()
     }
 
-    extern "C" fn is_enabled<T: PluginInterface>(ptr: *mut c_void) -> bool {
-        unsafe { &*(ptr as *mut T) }.is_enabled()
+    unsafe extern "C" fn is_enabled<T: PluginInterface>(ptr: *mut c_void) -> bool {
+        debug_assert!(!ptr.is_null());
+        (&*ptr.cast::<T>()).is_enabled()
     }
 
-    extern "C" fn is_privileged<T: PluginInterface>(ptr: *mut c_void) -> bool {
-        unsafe { &*(ptr as *mut T) }.is_privileged()
+    unsafe extern "C" fn is_privileged<T: PluginInterface>(ptr: *mut c_void) -> bool {
+        debug_assert!(!ptr.is_null());
+        (&*ptr.cast::<T>()).is_privileged()
     }
 
-    extern "C" fn is_fault_tolerant<T: PluginInterface>(ptr: *mut c_void) -> bool {
-        unsafe { &*(ptr as *mut T) }.is_fault_tolerant()
+    unsafe extern "C" fn is_fault_tolerant<T: PluginInterface>(ptr: *mut c_void) -> bool {
+        debug_assert!(!ptr.is_null());
+        (&*ptr.cast::<T>()).is_fault_tolerant()
     }
 
-    extern "C" fn set_params<T: PluginInterface>(
+    unsafe extern "C" fn set_params<T: PluginInterface>(
         ptr: *mut c_void,
         params: *const ParamsSet,
     ) -> bool {
-        unsafe { &mut *(ptr as *mut T) }.set_params(unsafe { &*params })
+        debug_assert!(!ptr.is_null());
+        (&mut *ptr.cast::<T>()).set_params(&*params)
     }
 
-    extern "C" fn get_params<T: PluginInterface>(ptr: *mut c_void, params: *mut ParamsGet) {
-        unsafe { &*(ptr as *mut T) }.get_params(unsafe { &mut *params });
+    unsafe extern "C" fn get_params<T: PluginInterface>(ptr: *mut c_void, params: *mut ParamsGet) {
+        debug_assert!(!ptr.is_null());
+        (&*ptr.cast::<T>()).get_params(&mut *params);
     }
 
-    extern "C" fn do_dispatch<T: PluginInterface>(
+    unsafe extern "C" fn do_dispatch<T: PluginInterface>(
         ptr: *mut c_void,
         cmd: *const c_char,
         args: *const c_char,
     ) -> bool {
-        let plugin = unsafe { &mut *(ptr as *mut T) };
-        let cmd_str = unsafe { CStr::from_ptr(cmd).to_str().unwrap_or_default() };
-        let args_str = unsafe { CStr::from_ptr(args).to_str().unwrap_or_default() };
+        debug_assert!(!ptr.is_null());
+        let plugin = &mut *ptr.cast::<T>();
+        let cmd_str = CStr::from_ptr(cmd).to_str().unwrap_or_default();
+        let args_str = CStr::from_ptr(args).to_str().unwrap_or_default();
         plugin.do_dispatch(cmd_str, args_str)
     }
 
-    extern "C" fn do_enable<T: PluginInterface>(ptr: *mut c_void) {
-        unsafe { &mut *(ptr as *mut T) }.do_enable();
+    unsafe extern "C" fn do_enable<T: PluginInterface>(ptr: *mut c_void) {
+        debug_assert!(!ptr.is_null());
+        (&mut *ptr.cast::<T>()).do_enable();
     }
 
-    extern "C" fn reset_data<T: PluginInterface>(ptr: *mut c_void) {
-        unsafe { &mut *(ptr as *mut T) }.reset_data();
+    unsafe extern "C" fn reset_data<T: PluginInterface>(ptr: *mut c_void) {
+        debug_assert!(!ptr.is_null());
+        (&mut *ptr.cast::<T>()).reset_data();
     }
 
-    extern "C" fn get_data<T: PluginInterface>(ptr: *mut c_void) -> *const c_char {
-        let plugin = unsafe { &*(ptr as *mut T) };
-        CString::new(plugin.get_data()).unwrap().into_raw()
+    unsafe extern "C" fn get_data<T: PluginInterface>(ptr: *mut c_void) -> *const c_char {
+        debug_assert!(!ptr.is_null());
+        let plugin = &*ptr.cast::<T>();
+        CString::new(plugin.get_data())
+            .unwrap_or_default()
+            .into_raw()
     }
 
+    // --- Allocate and return handle ---
     let boxed = Box::new(plugin);
 
     PluginHandle {
-        ptr: Box::into_raw(boxed) as *mut c_void,
+        ptr: Box::into_raw(boxed).cast::<c_void>(),
         destroy: destroy::<T>,
         is_initialized: is_initialized::<T>,
         is_enabled: is_enabled::<T>,
@@ -135,18 +144,12 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
     }
 }
 
-/// Dispatches a command to a plugin instance.
-///
+// ---------------------------
+// Plugin function wrappers
+// ---------------------------
+
 /// # Safety
-///
-/// The caller must ensure:
-/// - `handle` points to a valid, initialized `PluginHandle` created by this API.
-/// - The memory that `handle` points to remains valid for the duration of this call.
-/// - The underlying plugin must not have been unloaded or freed.
-/// - `cmd` and `args` must be valid UTF-8 strings and must not contain interior null bytes
-///   (since they are converted to `CString`s).
-///
-/// Violating any of these conditions may lead to undefined behavior.
+/// The caller must ensure `handle` points to a valid [`PluginHandle`].
 #[allow(clippy::unnecessary_map_or)]
 pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &str) -> bool {
     handle.as_mut().map_or(false, |plugin| {
@@ -160,45 +163,24 @@ pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &st
     })
 }
 
-
-/// Retrieves a string of data from the plugin.
-///
 /// # Safety
-///
-/// The caller must ensure:
-/// - `handle` is a valid, non-null pointer to an initialized `PluginHandle`.
-/// - The underlying plugin and its `get_data` function pointer are valid for the duration of this call.
-/// - The pointer returned by `(plugin.get_data)(plugin.ptr)` must either be null or point to a valid,
-///   null-terminated C string (`const char*`) that remains alive long enough to read.
-///
-/// Violating any of these conditions may lead to undefined behavior.
+/// The caller must ensure `handle` points to a valid [`PluginHandle`].
 pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
-    handle.as_mut().map_or("".to_string(), |plugin| {
+    handle.as_mut().map_or_else(String::new, |plugin| {
         let c_str = (plugin.get_data)(plugin.ptr);
-        if !c_str.is_null() {
-            CStr::from_ptr(c_str).to_string_lossy().into_owned()
+        if c_str.is_null() {
+            String::new()
         } else {
-            "".to_string()
+            CStr::from_ptr(c_str).to_string_lossy().into_owned()
         }
     })
 }
 
-
-/// Enables the specified plugin by invoking its `do_enable` function.
-///
 /// # Safety
-///
-/// The caller must ensure:
-/// - `handle` is a valid, non-null pointer to an initialized [`PluginHandle`].
-/// - The underlying plugin instance (`plugin.ptr`) remains valid and was created by this API.
-/// - The `do_enable` function pointer inside the handle points to a valid callable function.
-/// - No other threads are mutating or deallocating the plugin while this call executes.
-///
-/// Violating any of these conditions may lead to undefined behavior.
+/// The caller must ensure `handle` points to a valid [`PluginHandle`].
 pub unsafe fn plugin_do_enable(handle: *mut PluginHandle) -> bool {
     handle.as_mut().is_some_and(|plugin| {
         (plugin.do_enable)(plugin.ptr);
         true
     })
 }
-
