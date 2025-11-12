@@ -162,7 +162,6 @@ pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &st
     success || is_fault_tolerant
 }
 
-
 /// Retrieves a string of data from the plugin.
 ///
 /// # Safety

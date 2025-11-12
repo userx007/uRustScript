@@ -190,8 +190,7 @@ impl ScriptValidator {
             return Err(Box::new(ValidateError::JumpsLabelMismatch));
         }
 
-        if !self.validate_plugins_availability(items, &mut used_plugins, &mut plugin_commands)
-        {
+        if !self.validate_plugins_availability(items, &mut used_plugins, &mut plugin_commands) {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }
 

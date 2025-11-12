@@ -2,7 +2,7 @@ use libloading::{Library, Symbol};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use plugin_api::{PluginCreateFn, PluginHandle, plugin_do_enable};
+use plugin_api::{plugin_do_enable, PluginCreateFn, PluginHandle};
 use utils::ini_parser::IniParserEx;
 
 #[cfg(target_os = "windows")]

@@ -189,7 +189,6 @@ impl ScriptRunner {
         self.run_script_full_mode(items, plugin_manager)?;
         Ok(())
     }
-
 }
 
 impl Default for ScriptRunner {

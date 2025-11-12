@@ -132,7 +132,6 @@ pub extern "C" fn plugin_create() -> PluginHandle {
     make_handle(UtilsPlugin::new())
 }
 
-
 impl Default for UtilsPlugin {
     fn default() -> Self {
         Self::new()

@@ -1,6 +1,6 @@
 use regex::Regex;
-use std::collections::HashMap;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 
 pub fn replace_macros(line: &mut String, map: &HashMap<String, String>) -> bool {
     if !line.contains('$') || map.is_empty() {
@@ -54,7 +54,6 @@ pub fn string_to_bool(input: &str, out: &mut bool) -> bool {
     }
 }
 
-
 /// Compare two version strings (`"1.2.3"`, `"2.0"`, etc.) using a rule like `<`, `<=`, `==`, `>`, `>=`, or `!=`.
 pub fn compare_versions(v1: &str, rule: &str, v2: &str) -> bool {
     // Parse versions into vectors of numbers (non-numeric parts treated as 0)
@@ -82,11 +81,11 @@ pub fn compare_versions(v1: &str, rule: &str, v2: &str) -> bool {
 
     // Apply the comparison rule
     match rule {
-        "<"  => ord == Ordering::Less,
+        "<" => ord == Ordering::Less,
         "<=" => ord != Ordering::Greater,
         "==" => ord == Ordering::Equal,
         "!=" => ord != Ordering::Equal,
-        ">"  => ord == Ordering::Greater,
+        ">" => ord == Ordering::Greater,
         ">=" => ord != Ordering::Less,
         _ => panic!("Invalid comparison operator: {}", rule),
     }
