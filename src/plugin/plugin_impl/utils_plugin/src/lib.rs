@@ -44,7 +44,7 @@ impl UtilsPlugin {
 #[plugin_commands]
 impl UtilsPlugin {
     fn UECHO(&mut self, args: &str) -> bool {
-        if false == self.is_enabled() {
+        if !self.is_enabled() {
             println!("NOT_ENABLED::Called UECHO with args: {}", args);
         } else {
             println!("ENABLED::Called UECHO with args: {}", args);
@@ -78,7 +78,7 @@ impl PluginInterface for UtilsPlugin {
     }
     fn set_params(&mut self, params: &ParamsSet) -> bool {
         if let Some(fault_tolerant) = params.get(PARAMS_FAULT_TOLERANT) {
-            if false == string_utils::string_to_bool(fault_tolerant, &mut self.fault_tolerant) {
+            if !string_utils::string_to_bool(fault_tolerant, &mut self.fault_tolerant) {
                 println!(
                     "Invalid value for: {} -> {}",
                     PARAMS_FAULT_TOLERANT, fault_tolerant
@@ -87,7 +87,7 @@ impl PluginInterface for UtilsPlugin {
             }
         }
         if let Some(privileged) = params.get(PARAMS_PRIVILEGED) {
-            if false == string_utils::string_to_bool(privileged, &mut self.privileged) {
+            if !string_utils::string_to_bool(privileged, &mut self.privileged) {
                 println!("Invalid value for: {} -> {}", PARAMS_PRIVILEGED, privileged);
                 return false;
             }

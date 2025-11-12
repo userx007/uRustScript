@@ -186,7 +186,7 @@ impl ScriptValidator {
 
         println!("Validating script ...");
 
-        if false == self.validate_jumps(items) {
+        if !self.validate_jumps(items) {
             return Err(Box::new(ValidateError::JumpsLabelMismatch));
         }
 
@@ -196,11 +196,11 @@ impl ScriptValidator {
             return Err(Box::new(ValidateError::PluginNotSetForLoading));
         }
 
-        if false == self.validate_plugins_loading(&used_plugins, plugin_manager) {
+        if !self.validate_plugins_loading(&used_plugins, plugin_manager) {
             return Err(Box::new(ValidateError::PluginLoadingFailed));
         }
 
-        if false == self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {
+        if !self.validate_plugins_commands(&mut plugin_commands, plugin_manager) {
             return Err(Box::new(ValidateError::PluginCommandAvailability));
         }
 

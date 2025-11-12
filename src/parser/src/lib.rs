@@ -6,14 +6,12 @@ use std::fmt;
 use interfaces::{Item, TokenType};
 use utils::string_utils;
 
-const RE_LOAD_PLUGIN: &'static str =
-    r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
-const RE_CONST_MACRO: &'static str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*:=\s*(.+)$"#;
-const RE_VAR_MACRO: &'static str =
-    r#"^([A-Za-z_][A-Za-z0-9_]*)\s*\?=\s*([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
-const RE_COMMAND: &'static str = r#"^([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
-const RE_IF_GOTO_OR_GOTO: &'static str = r#"^(?:IF\s+(.*?)\s+)?GOTO\s+([A-Za-z0-9_]*)\s*$"#;
-const RE_LABEL: &'static str = r#"^LABEL\s+([A-Za-z0-9_]*)$"#;
+const RE_LOAD_PLUGIN: &str = r#"^LOAD_PLUGIN\s+([A-Z0-9_]+)(?:\s*(<=|<|>=|>|==)\s*(v\d+\.\d+\.\d+\.\d+))?$"#;
+const RE_CONST_MACRO: &str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*:=\s*(.+)$"#;
+const RE_VAR_MACRO: &str = r#"^([A-Za-z_][A-Za-z0-9_]*)\s*\?=\s*([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
+const RE_COMMAND: &str = r#"^([A-Z0-9_]+)\.([A-Z]+[A-Z0-9_]*)(?:\s+(.*))?$"#;
+const RE_IF_GOTO_OR_GOTO: &str = r#"^(?:IF\s+(.*?)\s+)?GOTO\s+([A-Za-z0-9_]*)\s*$"#;
+const RE_LABEL: &str = r#"^LABEL\s+([A-Za-z0-9_]*)$"#;
 
 #[derive(Debug)]
 enum ParseError {

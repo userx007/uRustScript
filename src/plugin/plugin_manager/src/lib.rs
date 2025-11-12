@@ -39,7 +39,7 @@ impl PluginManager {
     }
 
     pub fn load_plugins(&mut self, plugin_names: &HashSet<String>) -> bool {
-        if false == self.iniparser.load(self.inipathname) {
+        if !self.iniparser.load(self.inipathname) {
             println!("❌ Failed loading inifile from {:?}", self.inipathname);
             return false;
         }
@@ -82,7 +82,7 @@ impl PluginManager {
         for (_, descriptor) in &self.plugins {
             unsafe {
                 let handle: &mut PluginHandle = &mut *descriptor.handle;
-                if false == plugin_do_enable(handle) {
+                if !plugin_do_enable(handle) {
                     return false;
                 }
             }
