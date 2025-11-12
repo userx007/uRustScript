@@ -4,9 +4,9 @@ use std::ffi::{c_char, c_void, CStr, CString};
 // ---------------------------
 // Shared constants
 // ---------------------------
-pub const PARAMS_GET_CMDS_KEY: &'static str = "cmds";
-pub const PARAMS_FAULT_TOLERANT: &'static str = "FAULT_TOLERANT";
-pub const PARAMS_PRIVILEGED: &'static str = "PRIVILEGED";
+pub const PARAMS_GET_CMDS_KEY: &str = "cmds";
+pub const PARAMS_FAULT_TOLERANT: &str = "FAULT_TOLERANT";
+pub const PARAMS_PRIVILEGED: &str = "PRIVILEGED";
 
 // ---------------------------
 // Shared type definitions

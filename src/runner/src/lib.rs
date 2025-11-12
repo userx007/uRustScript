@@ -41,7 +41,7 @@ impl ScriptRunner {
         let descriptor = plugin_manager
             .plugins
             .get(plugin)
-            .ok_or_else(|| RunError::PluginNotFound)?;
+            .ok_or(RunError::PluginNotFound)?;
         string_utils::replace_macros(args, &self.macros);
         unsafe {
             let handle: &mut PluginHandle = &mut *descriptor.handle;
@@ -68,7 +68,7 @@ impl ScriptRunner {
         let descriptor = plugin_manager
             .plugins
             .get(plugin)
-            .ok_or_else(|| RunError::PluginNotFound)?;
+            .ok_or(RunError::PluginNotFound)?;
         unsafe {
             let handle: &mut PluginHandle = &mut *descriptor.handle;
 
