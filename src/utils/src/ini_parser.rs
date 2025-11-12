@@ -19,7 +19,7 @@ impl IniParserEx {
         let reader = BufReader::new(file);
         let mut current_section = String::new();
 
-        for mut line in reader.lines().flatten() {
+        for mut line in reader.lines().map_while(Result::ok) {
             line = Self::trim(&line);
             // Skip empty lines and comments
             if line.is_empty() || line.starts_with(';') || line.starts_with('#') {

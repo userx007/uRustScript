@@ -135,10 +135,23 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
     }
 }
 
+/// Dispatches a command to a plugin instance.
+///
+/// # Safety
+///
+/// The caller must ensure:
+/// - `handle` points to a valid, initialized `PluginHandle` created by this API.
+/// - The memory that `handle` points to remains valid for the duration of this call.
+/// - The underlying plugin must not have been unloaded or freed.
+/// - `cmd` and `args` must be valid UTF-8 strings and must not contain interior null bytes
+///   (since they are converted to `CString`s).
+///
+/// Violating any of these conditions may lead to undefined behavior.
 pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &str) -> bool {
     if handle.is_null() {
         return false;
     }
+
     let plugin = &*handle;
     let c_cmd = CString::new(cmd).expect("invalid cmd");
     let c_args = CString::new(args).expect("invalid args");
@@ -150,23 +163,50 @@ pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &st
 }
 
 
+/// Retrieves a string of data from the plugin.
+///
+/// # Safety
+///
+/// The caller must ensure:
+/// - `handle` is a valid, non-null pointer to an initialized `PluginHandle`.
+/// - The underlying plugin and its `get_data` function pointer are valid for the duration of this call.
+/// - The pointer returned by `(plugin.get_data)(plugin.ptr)` must either be null or point to a valid,
+///   null-terminated C string (`const char*`) that remains alive long enough to read.
+///
+/// Violating any of these conditions may lead to undefined behavior.
 pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
     if handle.is_null() {
         return "".to_string();
     }
+
     let plugin = &*handle;
     let c_str = (plugin.get_data)(plugin.ptr);
+
     if c_str.is_null() {
         return "".to_string();
     }
+
     CStr::from_ptr(c_str).to_string_lossy().into_owned()
 }
 
+/// Enables the specified plugin by invoking its `do_enable` function.
+///
+/// # Safety
+///
+/// The caller must ensure:
+/// - `handle` is a valid, non-null pointer to an initialized [`PluginHandle`].
+/// - The underlying plugin instance (`plugin.ptr`) remains valid and was created by this API.
+/// - The `do_enable` function pointer inside the handle points to a valid callable function.
+/// - No other threads are mutating or deallocating the plugin while this call executes.
+///
+/// Violating any of these conditions may lead to undefined behavior.
 pub unsafe fn plugin_do_enable(handle: *mut PluginHandle) -> bool {
     if handle.is_null() {
         return false;
     }
+
     let plugin = &*handle;
     (plugin.do_enable)(plugin.ptr);
+
     true
 }

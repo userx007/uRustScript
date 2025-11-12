@@ -13,3 +13,5 @@ members = [
     "plugin/plugin_impl/utils_plugin",
     "plugin/plugin_impl/math_plugin",
 ]
+
+workspace.resolver = "2"
