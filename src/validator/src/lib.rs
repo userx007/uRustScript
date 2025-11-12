@@ -78,11 +78,13 @@ impl ScriptValidator {
             let mut params: ParamsGet = Default::default();
 
             unsafe {
-                // `plugin_handle` is a reference to a *mut c_void
-                //let handle_ptr = *handle as *mut PluginHandle;
-                let handle_ptr = *handle;
-                if !handle_ptr.is_null() {
-                    ((*handle_ptr).get_params)((*handle_ptr).ptr, &mut params);
+
+                // *handle ==> *mut PluginHandle
+                // (*handle).as_mut() =>  Option<&mut PluginHandle> see impl<T> *mut T {pub fn as_mut(&mut self) -> Option<&mut T>;}
+                // Some(handle) => handle : &mut PluginHandle
+
+                if let Some(handle) = (*handle).as_mut() {
+                    (handle.get_params)(handle.ptr, &mut params);
                 }
             }
 

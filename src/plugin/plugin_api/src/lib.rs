@@ -147,20 +147,19 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
 ///   (since they are converted to `CString`s).
 ///
 /// Violating any of these conditions may lead to undefined behavior.
+#[allow(clippy::unnecessary_map_or)]
 pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &str) -> bool {
-    if handle.is_null() {
-        return false;
-    }
+    handle.as_mut().map_or(false, |plugin| {
+        let c_cmd = CString::new(cmd).expect("invalid cmd");
+        let c_args = CString::new(args).expect("invalid args");
 
-    let plugin = &*handle;
-    let c_cmd = CString::new(cmd).expect("invalid cmd");
-    let c_args = CString::new(args).expect("invalid args");
+        let success = (plugin.do_dispatch)(plugin.ptr, c_cmd.as_ptr(), c_args.as_ptr());
+        let is_fault_tolerant = (plugin.is_fault_tolerant)(plugin.ptr);
 
-    let success = (plugin.do_dispatch)(plugin.ptr, c_cmd.as_ptr(), c_args.as_ptr());
-    let is_fault_tolerant = (plugin.is_fault_tolerant)(plugin.ptr);
-
-    success || is_fault_tolerant
+        success || is_fault_tolerant
+    })
 }
+
 
 /// Retrieves a string of data from the plugin.
 ///
@@ -174,19 +173,16 @@ pub unsafe fn plugin_do_dispatch(handle: *mut PluginHandle, cmd: &str, args: &st
 ///
 /// Violating any of these conditions may lead to undefined behavior.
 pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
-    if handle.is_null() {
-        return "".to_string();
-    }
-
-    let plugin = &*handle;
-    let c_str = (plugin.get_data)(plugin.ptr);
-
-    if c_str.is_null() {
-        return "".to_string();
-    }
-
-    CStr::from_ptr(c_str).to_string_lossy().into_owned()
+    handle.as_mut().map_or("".to_string(), |plugin| {
+        let c_str = (plugin.get_data)(plugin.ptr);
+        if !c_str.is_null() {
+            CStr::from_ptr(c_str).to_string_lossy().into_owned()
+        } else {
+            "".to_string()
+        }
+    })
 }
+
 
 /// Enables the specified plugin by invoking its `do_enable` function.
 ///
@@ -200,12 +196,9 @@ pub unsafe fn plugin_get_data(handle: *mut PluginHandle) -> String {
 ///
 /// Violating any of these conditions may lead to undefined behavior.
 pub unsafe fn plugin_do_enable(handle: *mut PluginHandle) -> bool {
-    if handle.is_null() {
-        return false;
-    }
-
-    let plugin = &*handle;
-    (plugin.do_enable)(plugin.ptr);
-
-    true
+    handle.as_mut().is_some_and(|plugin| {
+        (plugin.do_enable)(plugin.ptr);
+        true
+    })
 }
+
