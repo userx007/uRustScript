@@ -8,7 +8,8 @@ pub fn replace_macros(line: &mut String, map: &HashMap<String, String>) -> bool 
 
     // Sort keys by length descending (longest first)
     let mut keys: Vec<&String> = map.keys().collect();
-    keys.sort_by(|a, b| b.len().cmp(&a.len()));
+    //keys.sort_by(|a, b| b.len().cmp(&a.len()));
+    keys.sort_by_key(|b| std::cmp::Reverse(b.len()));
 
     // Join keys into a regex alternation: (XXXX|XXX|...)
     let pattern = keys

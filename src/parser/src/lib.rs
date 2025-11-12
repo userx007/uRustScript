@@ -194,3 +194,10 @@ impl ScriptParser {
         Ok(())
     }
 }
+
+
+impl Default for ScriptParser {
+    fn default() -> Self {
+        Self::new()
+    }
+}

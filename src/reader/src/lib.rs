@@ -14,12 +14,12 @@ impl ScriptReader {
 
     pub fn read_script(&self, output: &mut Vec<Item>) -> Result<usize, Box<dyn Error>> {
         println!("Reading script: {}", self.scriptpathname);
-        let file = File::open(&self.scriptpathname)?;
+        let file = File::open(self.scriptpathname)?;
         let reader = BufReader::new(file);
 
         let mut in_block_comment = false;
 
-        for line in reader.lines().filter_map(Result::ok) {
+        for line in reader.lines().map_while(Result::ok) {
             let trimmed = line.trim();
 
             if in_block_comment {

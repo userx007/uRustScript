@@ -207,3 +207,9 @@ impl ScriptValidator {
         Ok(())
     }
 }
+
+impl Default for ScriptValidator {
+    fn default() -> Self {
+        Self::new()
+    }
+}

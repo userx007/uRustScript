@@ -191,3 +191,9 @@ impl ScriptRunner {
     }
 
 }
+
+impl Default for ScriptRunner {
+    fn default() -> Self {
+        Self::new()
+    }
+}

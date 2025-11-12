@@ -56,7 +56,7 @@ impl PluginManager {
 
                 // retrieve data from inifile and send to it to plugin
                 if let Some(section) = self.iniparser.get_resolved_section(name, INI_SEARCH_DEPTH) {
-                    if false == (handle.set_params)(handle.ptr, &section) {
+                    if !(handle.set_params)(handle.ptr, &section) {
                         return false;
                     }
                 }
@@ -79,7 +79,7 @@ impl PluginManager {
 
     pub fn enable_plugins(&mut self) -> bool {
         println!("Enabling plugins");
-        for (_, descriptor) in &self.plugins {
+        for descriptor in self.plugins.values() {
             unsafe {
                 let handle: &mut PluginHandle = &mut *descriptor.handle;
                 if !plugin_do_enable(handle) {

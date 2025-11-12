@@ -6,13 +6,15 @@ use plugin_macros::plugin_commands;
 use std::collections::HashMap;
 use utils::string_utils;
 
+type CommandFn<T> = Box<dyn Fn(&mut T, &str) -> bool>;
+
 pub struct UtilsPlugin {
     initialized: bool,
     enabled: bool,
     privileged: bool,
     fault_tolerant: bool,
     result: String,
-    commands: HashMap<String, Box<dyn Fn(&mut Self, &str) -> bool>>,
+    commands: HashMap<String, CommandFn<Self>>,
     params_get: ParamsGet,
     params_set: ParamsSet,
 }
@@ -128,4 +130,11 @@ impl PluginInterface for UtilsPlugin {
 #[no_mangle]
 pub extern "C" fn plugin_create() -> PluginHandle {
     make_handle(UtilsPlugin::new())
+}
+
+
+impl Default for UtilsPlugin {
+    fn default() -> Self {
+        Self::new()
+    }
 }
