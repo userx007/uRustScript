@@ -1,11 +1,9 @@
 use libloading::{Library, Symbol};
-use std::collections::HashMap;
-use std::collections::HashSet;
-use std::ffi::c_void;
+use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use utils::ini_parser::IniParserEx;
-use plugin_api::{ParamsGet, ParamsSet, PluginHandle};
+use plugin_api::PluginHandle;
 
 
 #[cfg(target_os = "windows")]
@@ -49,9 +47,14 @@ impl PluginManager {
     pub fn load_plugins(&mut self, plugins: &HashSet<String>) -> bool {
         println!("🔍 Loading plugins from {:?}", self.pluginsdirpath);
 
+        if !self.iniparser.load(self.inipathname) {
+            eprintln!("❌ Failed loading inifile from {:?}", self.inipathname);
+            return false;
+        }
+
         for name in plugins {
             let lib_name = format!("lib{}_plugin.{}", name.to_lowercase(), LIB_EXT);
-	    let lib_path = Path::new(self.pluginsdirpath).join(lib_name);
+            let lib_path = Path::new(self.pluginsdirpath).join(lib_name);
             if !Path::new(&lib_path).exists() {
                 eprintln!("❌ Missing plugin library: {:?}", lib_path);
                 return false;
@@ -72,7 +75,7 @@ impl PluginManager {
                     Ok(symbol) => symbol,
                     Err(err) => {
                         eprintln!("❌ {:?}: missing pluginEntry: {}", lib_path, err);
-                        continue; // Skip invalid plugin
+                        return false;
                     }
                 };
 
@@ -80,7 +83,7 @@ impl PluginManager {
             let handle_ptr = unsafe { entry() };
             if handle_ptr.is_null() {
                 eprintln!("❌ {:?}: pluginEntry returned null handle", lib_path);
-                continue;
+                return false;
             }
 
             // Load optional exit function
@@ -88,7 +91,7 @@ impl PluginManager {
                 unsafe { library.get(b"pluginExit").ok().map(|s| *s) };
 
             // Set parameters from INI
-            if let Some(section) = self.iniparser.get_resolved_section(name, 3) {
+            if let Some(section) = self.iniparser.get_resolved_section(name, INI_SEARCH_DEPTH) {
                 println!("⚙️  Applying INI section for '{}': {:?}", name, section);
                 unsafe {
                     let ok = ((*handle_ptr).set_params)((*handle_ptr).ptr, &section);
@@ -98,15 +101,14 @@ impl PluginManager {
                         if let Some(exit_fn) = exit_fn {
                             exit_fn(handle_ptr);
                         }
-                        continue;
+                        return false;
                     }
                 }
             }
 
-            // Initialize and enable the plugin
+            // perform user specific initialization
             unsafe {
                 ((*handle_ptr).do_init)((*handle_ptr).ptr);
-                ((*handle_ptr).do_enable)((*handle_ptr).ptr);
             }
 
             println!("✅ Loaded plugin: {}", name);
