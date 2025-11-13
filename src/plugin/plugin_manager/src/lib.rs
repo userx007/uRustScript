@@ -68,7 +68,7 @@ impl PluginManager {
                     return false;
                 }
             };
-
+println!("1");
             // Load plugin entry symbol
             let entry: Symbol<unsafe extern "C" fn() -> *mut PluginHandle> =
                 match unsafe { library.get(b"pluginEntry") } {
@@ -78,7 +78,7 @@ impl PluginManager {
                         return false;
                     }
                 };
-
+println!("2");
             // Call entry to create plugin handle
             let handle_ptr = unsafe { entry() };
             if handle_ptr.is_null() {
@@ -89,13 +89,12 @@ impl PluginManager {
             // Load optional exit function
             let exit_fn: Option<unsafe extern "C" fn(*mut PluginHandle)> =
                 unsafe { library.get(b"pluginExit").ok().map(|s| *s) };
-
+println!("3");
             // Set parameters from INI
             if let Some(section) = self.iniparser.get_resolved_section(name, INI_SEARCH_DEPTH) {
                 println!("⚙️  Applying INI section for '{}': {:?}", name, section);
                 unsafe {
-                    let ok = ((*handle_ptr).set_params)((*handle_ptr).ptr, &section);
-                    if !ok {
+                    if !((*handle_ptr).set_params)((*handle_ptr).ptr, &section) {
                         eprintln!("❌ {}: set_params() failed", name);
                         // Call pluginExit to cleanup
                         if let Some(exit_fn) = exit_fn {
@@ -105,12 +104,14 @@ impl PluginManager {
                     }
                 }
             }
-
-            // perform user specific initialization
+println!("4");
             unsafe {
-                ((*handle_ptr).do_init)((*handle_ptr).ptr);
+                if !((*handle_ptr).do_init)((*handle_ptr).ptr, std::ptr::null_mut()) {
+                    eprintln!("Plugin initialization failed");
+                    return false;
+                }
             }
-
+println!("5");
             println!("✅ Loaded plugin: {}", name);
 
             // Register in plugin table

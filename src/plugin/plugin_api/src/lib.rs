@@ -20,7 +20,7 @@ pub type PluginCreateFn = unsafe extern "C" fn() -> PluginHandle;
 // Plugin trait
 // ---------------------------
 pub trait PluginInterface {
-    fn do_init(&mut self);
+    fn do_init(&mut self, user_data: *mut c_void) -> bool;
     fn do_enable(&mut self);
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool;
     fn do_cleanup(&mut self);
@@ -41,7 +41,7 @@ pub trait PluginInterface {
 pub struct PluginHandle {
     pub ptr: *mut c_void,
     pub destroy: unsafe extern "C" fn(*mut c_void),
-    pub do_init: unsafe extern "C" fn(*mut c_void),
+    pub do_init: unsafe extern "C" fn(*mut c_void, *mut c_void) -> bool,
     pub do_enable: unsafe extern "C" fn(*mut c_void),
     pub do_dispatch: unsafe extern "C" fn(*mut c_void, *const c_char, *const c_char) -> bool,
     pub do_cleanup: unsafe extern "C" fn(*mut c_void),
@@ -66,9 +66,9 @@ pub fn make_handle<T: PluginInterface + 'static>(plugin: T) -> PluginHandle {
         }
     }
 
-    unsafe extern "C" fn do_init<T: PluginInterface>(ptr: *mut c_void) {
+    unsafe extern "C" fn do_init<T: PluginInterface>(ptr: *mut c_void, user_data: *mut c_void) -> bool {
         debug_assert!(!ptr.is_null());
-        (&mut *ptr.cast::<T>()).do_init();
+        (&mut *ptr.cast::<T>()).do_init(user_data)
     }
 
     unsafe extern "C" fn do_enable<T: PluginInterface>(ptr: *mut c_void) {

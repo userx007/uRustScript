@@ -3,8 +3,10 @@ use plugin_api::{
     PARAMS_GET_CMDS_KEY, PARAMS_GET_VERS_KEY, PARAMS_PRIVILEGED,
 };
 use plugin_macros::plugin_commands;
-use std::collections::HashMap;
 use utils::string_utils;
+
+use std::ffi::c_void;
+use std::collections::HashMap;
 
 const PLUGIN_VERS: &str = "1.0.0.0";
 type CommandFn<T> = Box<dyn Fn(&mut T, &str) -> bool>;
@@ -71,8 +73,10 @@ impl MathPlugin {
 // ---------------------- PluginInterface ----------------------
 
 impl PluginInterface for MathPlugin {
-    fn do_init(&mut self) {
-        self.initialized = true;
+    fn do_init(&mut self, user_data: *mut c_void) -> bool {
+        println!("UtilsPlugin::do_init() called with user_data = {:?}", user_data);
+	self.initialized = true;
+        true
     }
     fn do_enable(&mut self) {
         self.enabled = true;
@@ -138,20 +142,12 @@ impl Default for MathPlugin {
 }
 
 // ---------------------------
-// Rust FFI
-// ---------------------------
-
-#[no_mangle]
-pub extern "C" fn plugin_create() -> PluginHandle {
-    make_handle(MathPlugin::new())
-}
-
-// ---------------------------
 // C++ compatible entry/exit
 // ---------------------------
 
 #[no_mangle]
 pub extern "C" fn pluginEntry() -> *mut PluginHandle {
+    // Allocate the plugin handle on the heap
     let handle = make_handle(MathPlugin::new());
     Box::into_raw(Box::new(handle))
 }
@@ -160,8 +156,11 @@ pub extern "C" fn pluginEntry() -> *mut PluginHandle {
 pub extern "C" fn pluginExit(ptr_plugin: *mut PluginHandle) {
     if !ptr_plugin.is_null() {
         unsafe {
+            // Take ownership of the handle
             let handle = Box::from_raw(ptr_plugin);
+            // Call destroy on the inner plugin
             (handle.destroy)(handle.ptr);
+            // handle itself is dropped here
         }
     }
 }

@@ -65,8 +65,10 @@ impl ScriptValidator {
 
         if *plugins != used {
             let missing: HashSet<_> = used.difference(plugins).cloned().collect();
-            println!("Missing plugins: {:?}", missing);
-            return false;
+            if !missing.is_empty() {
+                println!("Missing plugins: {:?}", missing);
+                return false;
+            }
         }
         true
     }

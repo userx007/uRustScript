@@ -3,8 +3,10 @@ use plugin_api::{
     PARAMS_GET_CMDS_KEY, PARAMS_GET_VERS_KEY, PARAMS_PRIVILEGED,
 };
 use plugin_macros::plugin_commands;
-use std::collections::HashMap;
 use utils::string_utils;
+
+use std::ffi::c_void;
+use std::collections::HashMap;
 
 const PLUGIN_VERS: &str = "1.0.0.0";
 type CommandFn<T> = Box<dyn Fn(&mut T, &str) -> bool>;
@@ -33,7 +35,7 @@ impl UtilsPlugin {
             params_set: HashMap::new(),
         };
 
-        plugin.register_commands();
+        plugin.register_commands(); // procedural macro populates commands
         plugin.params_get.extend([
             (PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names()),
             (PARAMS_GET_VERS_KEY.to_string(), vec![PLUGIN_VERS]),
@@ -67,8 +69,10 @@ impl UtilsPlugin {
 }
 
 impl PluginInterface for UtilsPlugin {
-    fn do_init(&mut self) {
-        self.initialized = true;
+    fn do_init(&mut self, user_data: *mut c_void) -> bool {
+        println!("UtilsPlugin::do_init() called with user_data = {:?}", user_data);
+	self.initialized = true;
+        true
     }
     fn do_enable(&mut self) {
         self.enabled = true;
