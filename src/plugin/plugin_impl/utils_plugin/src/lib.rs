@@ -33,7 +33,7 @@ impl UtilsPlugin {
             params_set: HashMap::new(),
         };
 
-        plugin.register_commands(); // procedural macro populates commands
+        plugin.register_commands();
         plugin.params_get.extend([
             (PARAMS_GET_CMDS_KEY.to_string(), plugin.command_names()),
             (PARAMS_GET_VERS_KEY.to_string(), vec![PLUGIN_VERS]),
@@ -41,8 +41,6 @@ impl UtilsPlugin {
         plugin
     }
 }
-
-// ---------------------- Commands ----------------------
 
 #[allow(non_snake_case)]
 #[plugin_commands]
@@ -53,7 +51,6 @@ impl UtilsPlugin {
         } else {
             println!("ENABLED::Called UECHO with args: {}", args);
         }
-
         self.result = args.to_string();
         true
     }
@@ -67,24 +64,19 @@ impl UtilsPlugin {
         println!("Plugin PRINT: {}", args);
         true
     }
-
-    // Add more commands here as needed
 }
-
-// ---------------------- PluginInterface ----------------------
 
 impl PluginInterface for UtilsPlugin {
     fn do_init(&mut self) {
         self.initialized = true;
     }
     fn do_enable(&mut self) {
-        self.enabled = true
+        self.enabled = true;
     }
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
-        // avoid mutable/immutable borrow conflict
         if let Some(f) = self.commands.remove(cmd) {
             let result = f(self, args);
-            self.commands.insert(cmd.to_string(), f); // put closure back
+            self.commands.insert(cmd.to_string(), f);
             result
         } else {
             false
@@ -134,13 +126,32 @@ impl PluginInterface for UtilsPlugin {
     }
 }
 
-#[no_mangle]
-pub extern "C" fn plugin_create() -> PluginHandle {
-    make_handle(UtilsPlugin::new())
-}
-
 impl Default for UtilsPlugin {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// ---------------------------
+// C++ compatible entry/exit
+// ---------------------------
+
+#[no_mangle]
+pub extern "C" fn pluginEntry() -> *mut PluginHandle {
+    // Allocate the plugin handle on the heap
+    let handle = make_handle(UtilsPlugin::new());
+    Box::into_raw(Box::new(handle))
+}
+
+#[no_mangle]
+pub extern "C" fn pluginExit(ptr_plugin: *mut PluginHandle) {
+    if !ptr_plugin.is_null() {
+        unsafe {
+            // Take ownership of the handle
+            let handle = Box::from_raw(ptr_plugin);
+            // Call destroy on the inner plugin
+            (handle.destroy)(handle.ptr);
+            // handle itself is dropped here
+        }
     }
 }

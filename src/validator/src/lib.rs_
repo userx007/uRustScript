@@ -76,10 +76,14 @@ impl ScriptValidator {
         plugin_commands: &mut HashMap<String, HashSet<String>>,
         plugin_manager: &mut PluginManager,
     ) -> bool {
-        for (plugin_name, PluginDescriptor { handle, .. }) in &plugin_manager.plugins {
+        for (plugin_name, PluginDescriptor { handle, _lib }) in &plugin_manager.plugins {
             let mut params: ParamsGet = Default::default();
 
             unsafe {
+                // *handle ==> *mut PluginHandle
+                // (*handle).as_mut() =>  Option<&mut PluginHandle>, see: impl<T> *mut T {pub fn as_mut(&mut self) -> Option<&mut T>;}
+                // Some(handle) => handle : &mut PluginHandle
+
                 if let Some(handle) = (*handle).as_mut() {
                     (handle.get_params)(handle.ptr, &mut params);
                 }
@@ -91,11 +95,13 @@ impl ScriptValidator {
                     plugin_name, plugin_supported_commands
                 );
 
+                // Find which commands are used in the script for this plugin
                 let used_for_this_plugin = plugin_commands
                     .get(plugin_name)
                     .cloned()
                     .unwrap_or_default();
 
+                // Check which script commands are NOT supported by plugin
                 let unsupported_used_commands: Vec<_> = used_for_this_plugin
                     .iter()
                     .filter(|cmd| !plugin_supported_commands.contains(&cmd.as_str()))
@@ -126,12 +132,7 @@ impl ScriptValidator {
         plugins: &HashSet<String>,
         plugin_manager: &mut PluginManager,
     ) -> bool {
-        for plugin_name in plugins {
-            // load each plugin; load_plugins returns (), not bool
-            plugin_manager.load_plugins(&std::iter::once(plugin_name.clone()).collect());
-            println!("✅ Loaded plugin: {}", plugin_name);
-        }
-        true
+        plugin_manager.load_plugins(plugins)
     }
 
     fn validate_jumps(&self, items: &[Item]) -> bool {
@@ -141,19 +142,23 @@ impl ScriptValidator {
         for item in items.iter() {
             match &item.token_type {
                 TokenType::IfGoTo { label, .. } => {
+                    // Increment pending jump for this label
                     *pending_jumps.entry(label.clone()).or_insert(0) += 1;
                 }
 
                 TokenType::Label { label } => {
                     if let Some(count) = pending_jumps.get_mut(label) {
                         if *count > 0 {
+                            // Jump exists → label is valid
                             *count -= 1;
                             defined_labels.insert(label.clone());
                         } else {
+                            // No jump pending → invalid label
                             eprintln!("❌ Invalid label '{}' without preceding jump", label);
                             return false;
                         }
                     } else {
+                        // Label appeared without any jump
                         eprintln!("❌ Label '{}' without any jump", label);
                         return false;
                     }
@@ -163,6 +168,7 @@ impl ScriptValidator {
             }
         }
 
+        // Check if any jump left without a label
         for (label, count) in pending_jumps.iter() {
             if *count > 0 {
                 eprintln!("❌ Jump(s) to '{}' without corresponding label", label);

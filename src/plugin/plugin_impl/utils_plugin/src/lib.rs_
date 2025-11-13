@@ -9,7 +9,7 @@ use utils::string_utils;
 const PLUGIN_VERS: &str = "1.0.0.0";
 type CommandFn<T> = Box<dyn Fn(&mut T, &str) -> bool>;
 
-pub struct MathPlugin {
+pub struct UtilsPlugin {
     initialized: bool,
     enabled: bool,
     privileged: bool,
@@ -20,7 +20,7 @@ pub struct MathPlugin {
     params_set: ParamsSet,
 }
 
-impl MathPlugin {
+impl UtilsPlugin {
     pub fn new() -> Self {
         let mut plugin = Self {
             initialized: false,
@@ -46,41 +46,45 @@ impl MathPlugin {
 
 #[allow(non_snake_case)]
 #[plugin_commands]
-impl MathPlugin {
-    fn MECHO(&mut self, args: &str) -> bool {
+impl UtilsPlugin {
+    fn UECHO(&mut self, args: &str) -> bool {
         if !self.is_enabled() {
-            println!("NOT_ENABLED::Called MECHO with args: {}", args);
+            println!("NOT_ENABLED::Called UECHO with args: {}", args);
         } else {
-            println!("ENABLED::Called MECHO with args: {}", args);
+            println!("ENABLED::Called UECHO with args: {}", args);
         }
+
         self.result = args.to_string();
         true
     }
 
-    fn MRESET(&mut self, _args: &str) -> bool {
+    fn URESET(&mut self, _args: &str) -> bool {
         self.result.clear();
         true
     }
 
-    fn MPRINT(&mut self, args: &str) -> bool {
+    fn UPRINT(&mut self, args: &str) -> bool {
         println!("Plugin PRINT: {}", args);
         true
     }
+
+    // Add more commands here as needed
 }
 
 // ---------------------- PluginInterface ----------------------
 
-impl PluginInterface for MathPlugin {
+impl PluginInterface for UtilsPlugin {
     fn do_init(&mut self) {
         self.initialized = true;
     }
     fn do_enable(&mut self) {
-        self.enabled = true;
+        self.enabled = true
     }
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
+        // avoid mutable/immutable borrow conflict
         if let Some(f) = self.commands.remove(cmd) {
             let result = f(self, args);
-            self.commands.insert(cmd.to_string(), f);
+            self.commands.insert(cmd.to_string(), f); // put closure back
             result
         } else {
             false
@@ -130,37 +134,23 @@ impl PluginInterface for MathPlugin {
     }
 }
 
-impl Default for MathPlugin {
-    fn default() -> Self {
-        Self::new()
+#[no_mangle]
+pub extern "C" fn plugin_create() -> PluginHandle {
+    make_handle(UtilsPlugin::new())
+}
+
+#[no_mangle]
+pub extern "C" fn plugin_destroy(handle: *mut PluginHandle) {
+    if !handle.is_null() {
+        unsafe {
+            ((*(*handle)).destroy)((*handle).ptr);
+        }
     }
 }
 
-// ---------------------------
-// Rust FFI
-// ---------------------------
 
-#[no_mangle]
-pub extern "C" fn plugin_create() -> PluginHandle {
-    make_handle(MathPlugin::new())
-}
-
-// ---------------------------
-// C++ compatible entry/exit
-// ---------------------------
-
-#[no_mangle]
-pub extern "C" fn pluginEntry() -> *mut PluginHandle {
-    let handle = make_handle(MathPlugin::new());
-    Box::into_raw(Box::new(handle))
-}
-
-#[no_mangle]
-pub extern "C" fn pluginExit(ptr_plugin: *mut PluginHandle) {
-    if !ptr_plugin.is_null() {
-        unsafe {
-            let handle = Box::from_raw(ptr_plugin);
-            (handle.destroy)(handle.ptr);
-        }
+impl Default for UtilsPlugin {
+    fn default() -> Self {
+        Self::new()
     }
 }
