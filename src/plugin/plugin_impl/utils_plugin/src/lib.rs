@@ -74,11 +74,24 @@ impl UtilsPlugin {
 // ---------------------- PluginInterface ----------------------
 
 impl PluginInterface for UtilsPlugin {
-    fn is_initialized(&self) -> bool {
-        self.initialized
+    fn do_init(&mut self) {
+        self.initialized = true;
     }
-    fn is_enabled(&self) -> bool {
-        self.enabled
+    fn do_enable(&mut self) {
+        self.enabled = true
+    }
+    fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
+        // avoid mutable/immutable borrow conflict
+        if let Some(f) = self.commands.remove(cmd) {
+            let result = f(self, args);
+            self.commands.insert(cmd.to_string(), f); // put closure back
+            result
+        } else {
+            false
+        }
+    }
+    fn do_cleanup(&mut self) {
+        unimplemented!()
     }
     fn set_params(&mut self, params: &ParamsSet) -> bool {
         if let Some(fault_tolerant) = params.get(PARAMS_FAULT_TOLERANT) {
@@ -96,36 +109,28 @@ impl PluginInterface for UtilsPlugin {
                 return false;
             }
         }
-        self.initialized = true;
         true
     }
     fn get_params(&self, params: &mut ParamsGet) {
         *params = self.params_get.clone();
     }
-    fn do_enable(&mut self) {
-        self.enabled = true
+    fn get_data(&self) -> &str {
+        &self.result
     }
     fn reset_data(&mut self) {
         self.result.clear()
     }
-    fn get_data(&self) -> &str {
-        &self.result
+    fn is_initialized(&self) -> bool {
+        self.initialized
     }
-    fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
-        // avoid mutable/immutable borrow conflict
-        if let Some(f) = self.commands.remove(cmd) {
-            let result = f(self, args);
-            self.commands.insert(cmd.to_string(), f); // put closure back
-            result
-        } else {
-            false
-        }
-    }
-    fn is_fault_tolerant(&self) -> bool {
-        self.fault_tolerant
+    fn is_enabled(&self) -> bool {
+        self.enabled
     }
     fn is_privileged(&self) -> bool {
         self.privileged
+    }
+    fn is_fault_tolerant(&self) -> bool {
+        self.fault_tolerant
     }
 }
 
