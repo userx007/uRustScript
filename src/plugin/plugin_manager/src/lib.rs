@@ -2,7 +2,7 @@ use libloading::{Library, Symbol};
 use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
-use plugin_api::{PluginCreateFn, PluginHandle};
+use plugin_api::{plugin_do_enable, PluginCreateFn, PluginHandle};
 use utils::ini_parser::IniParserEx;
 
 #[cfg(target_os = "windows")]
@@ -12,9 +12,11 @@ const LIB_EXT: &str = "so";
 #[cfg(target_os = "macos")]
 const LIB_EXT: &str = "dylib";
 
+const INI_SEARCH_DEPTH: usize = 5;
+
 pub struct PluginDescriptor {
     pub handle: *mut PluginHandle,
-    pub _lib: Library,
+    pub _lib: Library, // underscore means “used to hold lifetime”
     pub exit_fn: Option<unsafe extern "C" fn(*mut PluginHandle)>,
 }
 
@@ -49,7 +51,7 @@ impl PluginManager {
                 Ok(lib) => lib,
                 Err(err) => {
                     eprintln!("❌ Failed to load {}: {}", lib_name, err);
-                    continue;
+                    return false;
                 }
             };
 
@@ -58,20 +60,28 @@ impl PluginManager {
                 Ok(sym) => sym,
                 Err(err) => {
                     eprintln!("❌ {}: missing pluginEntry: {}", lib_name, err);
-                    continue;
+                    return false;
                 }
             };
 
             let handle = unsafe { entry() };
             if handle.ptr.is_null() {
                 eprintln!("❌ {}: pluginEntry returned null handle", lib_name);
-                continue;
+                return false;
             }
 
             // optional pluginExit
             let exit_fn: Option<unsafe extern "C" fn(*mut PluginHandle)> =
                 unsafe { library.get(b"pluginExit").ok().map(|s| *s) };
 
+            // retrieve data from inifile and send to it to plugin
+            if let Some(section) = self.iniparser.get_resolved_section(name, INI_SEARCH_DEPTH) {
+                if unsafe { !(handle.set_params)(handle.ptr, &section) } {
+                    return false;
+                }
+            }
+
+            // Box it and store as raw pointer
             let boxed_handle = Box::new(handle);
             let handle_ptr = Box::into_raw(boxed_handle);
 
@@ -89,15 +99,18 @@ impl PluginManager {
         true
     }
 
-    pub fn enable_plugins(&mut self) {
+    pub fn enable_plugins(&mut self) -> bool {
         println!("⚡ Enabling plugins...");
         for (name, descriptor) in &self.plugins {
             unsafe {
                 let handle: &mut PluginHandle = &mut *descriptor.handle;
-                (handle.do_enable)(handle.ptr);
+                if !plugin_do_enable(handle) {
+                    return false;
+                }
                 println!("✅ Enabled plugin: {}", name);
             }
         }
+        true
     }
 
     pub fn unload_plugins(&mut self) {

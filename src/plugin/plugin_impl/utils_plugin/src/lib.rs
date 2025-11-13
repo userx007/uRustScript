@@ -74,9 +74,10 @@ impl PluginInterface for UtilsPlugin {
         self.enabled = true;
     }
     fn do_dispatch(&mut self, cmd: &str, args: &str) -> bool {
+        // avoid mutable/immutable borrow conflict
         if let Some(f) = self.commands.remove(cmd) {
             let result = f(self, args);
-            self.commands.insert(cmd.to_string(), f);
+            self.commands.insert(cmd.to_string(), f); // put closure back
             result
         } else {
             false
